@@ -1,0 +1,42 @@
+/* ECDAT Custom Styling - Cyber Dark Theme */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #080c14; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+.code-diff-before {
+    background: #140505;
+    border-left: 3px solid #ef4444;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.code-diff-after {
+    background: #04140b;
+    border-left: 3px solid #10b981;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Fix target highlight animation */
+:target {
+    animation: highlight-card 2s ease-out;
+}
+
+@keyframes highlight-card {
+    0% { outline: 2px solid #6366f1; box-shadow: 0 0 25px rgba(99,102,241,0.6); }
+    100% { outline: 2px solid transparent; }
+}
+
+/* Scanner HUD pulse animation */
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.02); }
+}
+.pulse-hud {
+    animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* Modal overlay backdrop blur */
+.modal-backdrop {
+    background: rgba(4, 7, 13, 0.85);
+    backdrop-filter: blur(8px);
+}
