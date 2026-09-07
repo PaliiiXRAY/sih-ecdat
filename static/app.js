@@ -1,632 +1,887 @@
-// ECDAT Client Application - SIH26164 (NTRO)
-// Full Figma Design Implementation with Dynamic Gauge, Dual Device View & Remediation Engine
+// ECDAT Front-End Controller - Exact Match to Video Prototype 100%
 
-let currentRepo = 'finpay-auth';
-let currentTab = 'posture';
-let currentDevice = 'mobile';
-let currentTheme = 'light';
-
-// Repository Database (Matching Figma Prototype 100%)
+// ============================================================================
+// DATA REPOSITORIES & ASSETS INVENTORY
+// ============================================================================
 const REPOSITORIES = {
-    'finpay-auth': {
-        name: 'finpay-auth',
-        branch: 'main',
-        grade: 'GRADE D — HIGH QUANTUM EXPOSURE',
-        gradeShort: 'GRADE D',
-        gradeBadgeClass: 'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300',
-        gaugeColor: '#ef4444',
+    fintech: {
+        id: 'fintech',
+        name: 'FinTech API Gateway',
+        runtime: 'Node.js • Payment processing',
+        codeLang: 'JavaScript (Node.js)',
+        sampleCode: `const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+// Generating 2048-bit RSA keypair for JWT signing
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+});
+
+// Ephemeral ECDH key agreement over curve P-256
+const ecdh = crypto.createECDH('prime256v1');
+ecdh.generateKeys();
+
+// Legacy Diffie-Hellman session exchange
+const dh = crypto.createDiffieHellman(2048);
+dh.generateKeys();
+
+// Data payload symmetric encryption
+const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);`,
         score: 20,
-        discovered: 8,
-        critical: 5,
-        urgency: 2,
-        sla: '• SLA: 14 days',
-        safe: 3,
-        summary: "Vulnerable to Shor's algorithm on CRQC. <strong class='text-slate-900 dark:text-white font-semibold'>62% asymmetric crypto</strong> requires urgent migration.",
-        hndlTarget: "Exposure Target: High-Value Financial Auth Tokens",
-        hndlDescription: "Encrypted traffic intercepted today has an estimated 10-year exposure window against cryptanalytically relevant quantum computers (CRQC).",
-        tasks: [
+        scoreBadge: 'CRITICAL',
+        exposureDesc: '4 assets critically vulnerable within 7 years. Recommendation: begin migration within 6 months to beat Mosca\'s Theorem deadline.',
+        totalAssets: 10,
+        criticalCount: 4,
+        highCount: 3,
+        pqcReadyCount: 2,
+        topRisks: [
             {
-                id: 'task-rsa-2048',
-                severity: 'URGENT',
-                algorithm: 'RSA-2048',
-                cvss: '9.1',
-                badgeColor: 'text-red-600 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900',
-                file: 'auth/keys.py:18',
-                purpose: 'Key Exchange',
-                target: 'Migrate to ML-KEM-768 (NIST FIPS 203)',
-                targetCalloutClass: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300',
-                arrowColor: 'text-emerald-600',
-                subtext: 'Shor susceptible • Polynomial-time prime factorization',
-                lockColor: 'text-red-500',
-                resolved: false,
-                codeBefore: `from Crypto.PublicKey import RSA\nfrom Crypto.Cipher import PKCS1_OAEP\n\n# Vulnerable to Shor's Polynomial-time Prime Factorization\nkey = RSA.generate(2048)\ncipher = PKCS1_OAEP.new(key)`,
-                codeAfter: `# Quantum-Resilient Module-Lattice Key Encapsulation (FIPS 203)\nfrom pqcrypto.kem.ml_kem_768 import generate_keypair, encrypt, decrypt\n\npublic_key, secret_key = generate_keypair()\nciphertext, shared_secret = encrypt(public_key)`,
-                guidance: `Install standard liboqs-python or cryptography>=43.0. Replace asymmetric key generation with ML-KEM-768 module-lattice primitive. Encapsulation ciphertexts are 1088 bytes.`,
-                riskyTitle: `Why is RSA-2048 Vulnerable?`,
-                riskyExpl: `Shor's Algorithm executed on a Cryptanalytically Relevant Quantum Computer (CRQC) reduces prime factorization from sub-exponential time O(exp(c*n^(1/3))) to polynomial time O(n^3). An adversary capturing current session tokens can store them (HNDL) and decrypt all historical records once a CRQC is built.`
+                name: 'RSA-2048',
+                category: 'Key Exchange / Encryption',
+                risk: 'CRITICAL',
+                desc: "Vulnerable to Shor's Algorithm. Breaks under 2,048 logical qubits. Harvest Now, Decrypt Later (HNDL) active risk.",
+                target: 'ML-KEM-768 (NIST FIPS 203)',
+                assetId: 'asset-1'
             },
             {
-                id: 'task-ecdsa-p256',
-                severity: 'HIGH',
-                algorithm: 'ECDSA P-256',
-                cvss: '8.4',
-                badgeColor: 'text-red-600 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900',
-                file: 'signing.py:42',
-                purpose: 'Digital Signature',
-                target: 'Migrate to ML-DSA-65 (NIST FIPS 204)',
-                targetCalloutClass: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300',
-                arrowColor: 'text-emerald-600',
-                subtext: 'Elliptic curve discrete log vulnerable to quantum Fourier transform',
-                lockColor: 'text-red-500',
-                resolved: false,
-                codeBefore: `from ecdsa import SigningKey, NIST256p\n\n# Vulnerable to Quantum Discrete Logarithm Attack\nsk = SigningKey.generate(curve=NIST256p)\nsignature = sk.sign(b"auth_payload")`,
-                codeAfter: `# NIST FIPS 204 Module-Lattice Digital Signature Standard\nfrom pqcrypto.sign.ml_dsa_65 import generate_keypair, sign, verify\n\npk, sk = generate_keypair()\nsignature = sign(sk, b"auth_payload")`,
-                guidance: `FIPS 204 (ML-DSA-65) provides 128-bit quantum security level. Replace secp256r1 signing with lattice vectors. Public keys are 1952 bytes and signatures are 3309 bytes.`,
-                riskyTitle: `Why is ECDSA P-256 at Risk?`,
-                riskyExpl: `Elliptic Curve cryptography relies on the discrete logarithm problem. On a quantum computer with ~2330 logical qubits, Shor's algorithm computes the discrete logarithm in seconds, allowing attackers to forge arbitrary digital signatures on financial transfers.`
+                name: 'ECDH P-256',
+                category: 'Key Agreement',
+                risk: 'CRITICAL',
+                desc: 'Elliptic Curve Discrete Log breaks with quantum Fourier transform. Session forward secrecy compromised.',
+                target: 'ML-KEM-1024 / X25519Kyber768',
+                assetId: 'asset-2'
             },
             {
-                id: 'task-dh-2048',
-                severity: 'MEDIUM',
-                algorithm: 'Diffie-Hellman 2048',
-                cvss: '6.8',
-                badgeColor: 'text-amber-600 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900',
-                file: 'transport/tls.py:65',
-                purpose: 'TLS Handshake',
-                target: 'Implement Hybrid X25519 + ML-KEM-768',
-                targetCalloutClass: 'bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300',
-                arrowColor: 'text-blue-600',
-                subtext: 'Ephemeral DH key exchange vulnerable to harvest-now-decrypt-later',
-                lockColor: 'text-amber-500',
-                resolved: false,
-                codeBefore: `from cryptography.hazmat.primitives.asymmetric import dh\n\n# Classical Ephemeral Diffie-Hellman\nparameters = dh.generate_parameters(generator=2, key_size=2048)\nserver_key = parameters.generate_private_key()`,
-                codeAfter: `# Hybrid Post-Quantum + Classical Key Agreement (IETF draft)\nfrom pqcrypto.hybrid import X25519_ML_KEM_768\n\nhybrid_client = X25519_ML_KEM_768()\nshared_key = hybrid_client.exchange()`,
-                guidance: `Enables backwards compatibility while ensuring quantum resistance. If either algorithm remains secure, communications remain uncrackable.`,
-                riskyTitle: `Why is Diffie-Hellman Vulnerable?`,
-                riskyExpl: `Classical DH uses modular exponentiation. CRQC solves this via period-finding quantum algorithms. Hybrid key exchanges combine classical elliptic curves with lattice KEMs so existing regulatory audits pass while providing forward secrecy.`
+                name: 'DH-2048',
+                category: 'Key Exchange',
+                risk: 'CRITICAL',
+                desc: 'Finite Field Diffie-Hellman vulnerable to quantum factorisation. High exposure in legacy TLS handshakes.',
+                target: 'ML-KEM-768',
+                assetId: 'asset-5'
+            }
+        ],
+        assets: [
+            {
+                id: 'asset-1',
+                name: 'RSA-2048',
+                role: 'JWT Sign & Key Exchange',
+                location: '/src/auth/jwt.js:42',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                moscaFormula: 'X (10y) + Y (3y) = 13y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Financial audit data has a shelf life of 10 years. Migration takes 3 years. Since 10 + 3 > 7, adversary capturing traffic today can decrypt it once a CRQC arrives.',
+                purpose: 'Used for signing session JSON Web Tokens (JWT) and client asymmetric key exchange during user authentication.',
+                riskReason: "Shor's Algorithm on a Cryptanalytically Relevant Quantum Computer (CRQC) solves integer factorisation in polynomial time O((log N)^3). An adversary running Shor's algorithm can derive the private key from public modulus N, compromising all historical and active sessions.",
+                replacement: 'ML-KEM-768 (NIST FIPS 203) & ML-DSA-65 (NIST FIPS 204)',
+                beforeCode: `// VULNERABLE: Classical RSA-2048 signing
+const crypto = require('crypto');
+const token = jwt.sign(payload, rsaPrivateKey, {
+  algorithm: 'RS256',
+  expiresIn: '24h'
+});`,
+                afterCode: `// PQC-READY: NIST FIPS 204 ML-DSA-65 (Dilithium3)
+import { MLDSA65 } from '@openquantumsafe/oqs';
+const pqcToken = await MLDSA65.signPayload(payload, pqcSecretKey, {
+  algorithm: 'ML-DSA-65',
+  hybridFallback: 'ECDSA-P384'
+});`
+            },
+            {
+                id: 'asset-2',
+                name: 'ECDH P-256',
+                role: 'Session Key Agreement',
+                location: '/src/crypto/handshake.js:18',
+                keyLength: '256-bit',
+                family: 'Asymmetric (Elliptic Curve)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                moscaFormula: 'X (5y) + Y (3y) = 8y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Session key establishment exposes transit payload to HNDL. 5 + 3 > 7 years.',
+                purpose: 'Generates ephemeral shared secrets for encrypting client-server WebSocket payloads.',
+                riskReason: "Shor's discrete logarithm attack breaks ECDLP with ~1,500 logical qubits. Any recorded session keys can be retroactively derived by quantum adversaries.",
+                replacement: 'X25519 + ML-KEM-768 Hybrid Key Exchange',
+                beforeCode: `// VULNERABLE: Classical ECDH P-256
+const ecdh = crypto.createECDH('prime256v1');
+ecdh.generateKeys();
+const sharedSecret = ecdh.computeSecret(clientPublicKey);`,
+                afterCode: `// PQC-READY: Hybrid X25519 + ML-KEM-768
+import { HybridKEM } from '@openquantumsafe/oqs';
+const kem = new HybridKEM('X25519-ML-KEM-768');
+const { ciphertext, sharedSecret } = await kem.encapsulate(clientPqcKey);`
+            },
+            {
+                id: 'asset-3',
+                name: 'RSA-4096',
+                role: 'Root Certificate Authority',
+                location: '/certs/ca-root.pem:1',
+                keyLength: '4096-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'HIGH',
+                status: 'In Progress',
+                moscaFormula: 'X (15y) + Y (4y) = 19y > Z (7y / 2031) — HIGH RISK',
+                moscaDesc: 'Root certificates have long lifetimes. Quantum computers will break 4096-bit RSA shortly after 2048-bit.',
+                purpose: 'Signs intermediate CA and TLS leaf certificates for production cluster nodes.',
+                riskReason: "Increasing modulus to 4096-bit only doubles Shor's qubit requirement (~4,096 logical qubits), offering negligible quantum resistance.",
+                replacement: 'ML-DSA-87 (NIST FIPS 204 / Dilithium5)',
+                beforeCode: `openssl req -x509 -newkey rsa:4096 -keyout ca-key.pem -out ca-cert.pem -days 3650`,
+                afterCode: `oqs-openssl req -x509 -newkey mldsa87 -keyout ca-key.pem -out ca-cert.pem -days 3650`
+            },
+            {
+                id: 'asset-4',
+                name: 'ECDSA P-384',
+                role: 'Microservice Inter-comm Signing',
+                location: '/src/rpc/signer.js:88',
+                keyLength: '384-bit',
+                family: 'Asymmetric (Elliptic Curve)',
+                risk: 'HIGH',
+                status: 'Not Started',
+                moscaFormula: 'X (7y) + Y (2y) = 9y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'RPC authentication tokens vulnerable to forgery once CRQC emerges.',
+                purpose: 'Mutual TLS and JSON token signing between microservices in the Kubernetes mesh.',
+                riskReason: 'Quantum discrete logarithm algorithms bypass elliptic curves of any standard size in polynomial time.',
+                replacement: 'Falcon-512 (FN-DSA) or ML-DSA-44',
+                beforeCode: `const sign = crypto.createSign('SHA384');
+sign.update(rpcPayload);
+const signature = sign.sign(ecPrivateKey);`,
+                afterCode: `import { MLDSA44 } from '@openquantumsafe/oqs';
+const signature = await MLDSA44.sign(rpcPayload, pqcPrivateKey);`
+            },
+            {
+                id: 'asset-5',
+                name: 'DH-2048',
+                role: 'Legacy TLS Key Exchange',
+                location: '/config/tls-options.json:14',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Finite Field)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                moscaFormula: 'X (10y) + Y (2y) = 12y > Z (7y / 2031) — CRITICAL',
+                moscaDesc: 'Legacy cipher suites configured in nginx ingress allow eavesdropping recordings.',
+                purpose: 'Diffie-Hellman parameters used in fallback TLS 1.2 handshakes for legacy partner integrations.',
+                riskReason: "Shor's algorithm breaks finite field discrete logarithm in sub-exponential quantum time.",
+                replacement: 'Enforce TLS 1.3 with ML-KEM-768 (X25519Kyber768Draft00)',
+                beforeCode: `ssl_dhparam /etc/ssl/certs/dhparam2048.pem;
+ssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384';`,
+                afterCode: `ssl_protocols TLSv1.3;
+ssl_curves X25519MLKEM768:x25519:secp256r1;`
+            },
+            {
+                id: 'asset-6',
+                name: 'MD5',
+                role: 'Password Checksum Legacy',
+                location: '/src/legacy/hash.js:12',
+                keyLength: '128-bit',
+                family: 'Cryptographic Hash',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                moscaFormula: 'COLLISION BROKEN (Classical & Quantum Zero Resistance)',
+                moscaDesc: 'Broken classically since 2004; trivially broken quantumly.',
+                purpose: 'Internal file hash verification and legacy password hashing check.',
+                riskReason: 'Completely broken hash function vulnerable to collision and preimage attacks.',
+                replacement: 'Argon2id for passwords; SHA3-256 for data checksums',
+                beforeCode: `const hash = crypto.createHash('md5').update(password).digest('hex');`,
+                afterCode: `const argon2 = require('argon2');
+const hash = await argon2.hash(password, { type: argon2.argon2id });`
+            },
+            {
+                id: 'asset-7',
+                name: 'AES-256-GCM',
+                role: 'Database Column Encryption',
+                location: '/src/db/encryption.js:33',
+                keyLength: '256-bit',
+                family: 'Symmetric Block Cipher',
+                risk: 'SAFE',
+                status: 'Migrated',
+                moscaFormula: '256-bit key -> Grover provides 128-bit security margin. SAFE.',
+                moscaDesc: "Grover's algorithm halves effective symmetric key length from 256 to 128 bits, which remains computationally infeasible.",
+                purpose: 'Encrypts credit card PAN and personal identifier columns at rest in PostgreSQL.',
+                riskReason: 'Quantum safe: 128 bits of post-quantum security margin is recognized by NIST as secure beyond 2050.',
+                replacement: 'No migration required. Retain AES-256-GCM.',
+                beforeCode: `// SAFE: AES-256-GCM meets NIST PQC standard
+const cipher = crypto.createCipheriv('aes-256-gcm', key256, iv);`,
+                afterCode: `// Already PQC-Compliant: No change necessary
+const cipher = crypto.createCipheriv('aes-256-gcm', key256, iv);`
+            },
+            {
+                id: 'asset-8',
+                name: 'SHA-256',
+                role: 'HMAC Webhook Signatures',
+                location: '/src/webhooks/sign.js:29',
+                keyLength: '256-bit',
+                family: 'Cryptographic Hash',
+                risk: 'SAFE',
+                status: 'Migrated',
+                moscaFormula: 'Grover collision cost O(2^128). Post-Quantum Safe.',
+                moscaDesc: "NIST evaluates SHA-256 as possessing sufficient quantum collision resistance.",
+                purpose: 'Verifies webhook payload integrity sent to third-party payment merchants.',
+                riskReason: 'Quantum-safe: Collision resistance under Grover attack remains 2^128 operations.',
+                replacement: 'Retain SHA-256 or optionally adopt SHA3-256.',
+                beforeCode: `const hmac = crypto.createHmac('sha256', secret).update(body).digest('hex');`,
+                afterCode: `// PQC Compliant: Retain HMAC-SHA256
+const hmac = crypto.createHmac('sha256', secret).update(body).digest('hex');`
+            },
+            {
+                id: 'asset-9',
+                name: 'RSA-2048',
+                role: 'Outbound TLS Client Auth',
+                location: '/certs/client-tls.crt:1',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                moscaFormula: 'X (5y) + Y (2y) = 7y = Z (7y / 2031) — DEADLINE AT RISK',
+                moscaDesc: 'M2M mutual TLS authentication will fail validation once quantum attackers can forge certificates.',
+                purpose: 'Authenticates backend microservices to external bank core settlement networks.',
+                riskReason: "Vulnerable to quantum private key recovery via Shor's algorithm.",
+                replacement: 'Stateful Hash-Based Signature SLH-DSA (FIPS 205) or ML-DSA',
+                beforeCode: `const agent = new https.Agent({
+  cert: fs.readFileSync('client-rsa2048.crt'),
+  key: fs.readFileSync('client-rsa2048.key')
+});`,
+                afterCode: `const agent = new pqcHttps.Agent({
+  cert: fs.readFileSync('client-mldsa65.crt'),
+  key: fs.readFileSync('client-mldsa65.key')
+});`
+            },
+            {
+                id: 'asset-10',
+                name: 'PBKDF2-SHA1',
+                role: 'Key Derivation Function',
+                location: '/src/crypto/kdf.js:54',
+                keyLength: '160-bit hash',
+                family: 'Password KDF',
+                risk: 'HIGH',
+                status: 'Not Started',
+                moscaFormula: 'SHA-1 collision + low iterations creates acute vulnerability.',
+                moscaDesc: 'Classical collision attacks plus quantum preimage speedup mandate immediate replacement.',
+                purpose: 'Derives encryption keys from master passphrase for local backup archives.',
+                riskReason: 'SHA-1 has known collision weaknesses and low iteration count facilitates quantum brute-force.',
+                replacement: 'HKDF with SHA3-512 or Argon2id',
+                beforeCode: `crypto.pbkdf2(pass, salt, 10000, 32, 'sha1', (err, key) => { ... });`,
+                afterCode: `// PQC Standard: Argon2id or HKDF-SHA384
+const key = await argon2.hash(pass, { salt, hashLength: 32, type: argon2.argon2id });`
             }
         ]
     },
-    'secure-comms': {
-        name: 'secure-comms',
-        branch: 'main',
-        grade: 'GRADE C — MODERATE EXPOSURE',
-        gradeShort: 'GRADE C',
-        gradeBadgeClass: 'bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-300',
-        gaugeColor: '#f59e0b',
-        score: 45,
-        discovered: 12,
-        critical: 7,
-        urgency: 3,
-        sla: '• SLA: 7 days',
-        safe: 5,
-        summary: "Hybrid handshake partially active. <strong class='text-slate-900 dark:text-white font-semibold'>42% legacy RSA certificates</strong> and short AES keys require elevation.",
-        hndlTarget: "Exposure Target: Tactical Defense IPsec Mesh Tunnels",
-        hndlDescription: "Radio telemetry intercepted in transit is subject to government-grade quantum decryption schedules within 7-8 years.",
-        tasks: [
+
+    health: {
+        id: 'health',
+        name: 'Healthcare Records API',
+        runtime: 'Java • EHR data store',
+        codeLang: 'Java (Spring Boot)',
+        sampleCode: `// Java Cryptography Architecture (JCA)
+KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+kpg.initialize(2048);
+KeyPair kp = kpg.generateKeyPair();
+
+KeyAgreement ka = KeyAgreement.getInstance("ECDH");
+ka.init(kp.getPrivate());
+
+Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+cipher.init(Cipher.ENCRYPT_MODE, secretKey);`,
+        score: 15,
+        scoreBadge: 'CRITICAL',
+        exposureDesc: 'Patient EHR records have 30+ year retention legal requirements. High vulnerability to HNDL.',
+        totalAssets: 10,
+        criticalCount: 5,
+        highCount: 3,
+        pqcReadyCount: 1,
+        topRisks: [
             {
-                id: 'task-rsa-4096',
-                severity: 'HIGH',
-                algorithm: 'RSA-4096 Certificate',
-                cvss: '8.2',
-                badgeColor: 'text-red-600 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900',
-                file: 'crypto/handshake.c:112',
-                purpose: 'Node Identity',
-                target: 'Migrate to ML-DSA-87 (NIST FIPS 204)',
-                targetCalloutClass: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300',
-                arrowColor: 'text-emerald-600',
-                subtext: '4096-bit key length only delays quantum factoring by ~45 seconds',
-                lockColor: 'text-red-500',
-                resolved: false,
-                codeBefore: `EVP_PKEY *pkey = EVP_RSA_gen(4096);\nX509_sign(cert, pkey, EVP_sha256());`,
-                codeAfter: `// FIPS 204 High-Security ML-DSA-87\nEVP_PKEY *pkey = EVP_PKEY_Q_keygen(libctx, NULL, "ML-DSA-87");\nX509_sign(cert, pkey, NULL);`,
-                guidance: `Upgrades root certificates from vulnerable 4096-bit primes to NIST Category 5 lattice security.`,
-                riskyTitle: `Does 4096-bit RSA protect against Quantum Computers?`,
-                riskyExpl: `No! Doubling RSA key size from 2048 to 4096 increases classical cracking difficulty exponentially, but only increases quantum cracking time by a cubic polynomial factor. A CRQC breaks 4096-bit RSA in minutes.`
+                name: 'RSA-2048',
+                category: 'HIPAA Record Encryption',
+                risk: 'CRITICAL',
+                desc: 'Patient health information retained for 30 years. Captured data will be decrypted during patient lifespan.',
+                target: 'ML-KEM-1024',
+                assetId: 'asset-1'
             },
             {
-                id: 'task-ecdh-secp384',
-                severity: 'MEDIUM',
-                algorithm: 'ECDH secp384r1',
-                cvss: '7.1',
-                badgeColor: 'text-amber-600 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900',
-                file: 'vpn/tunnel.go:88',
-                purpose: 'Tunnel Key Exch',
-                target: 'Migrate to ML-KEM-1024 (NIST FIPS 203)',
-                targetCalloutClass: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300',
-                arrowColor: 'text-emerald-600',
-                subtext: 'Replace with NIST Category 5 Module-Lattice primitive',
-                lockColor: 'text-amber-500',
-                resolved: false,
-                codeBefore: `curve := elliptic.P384()\nprivKey, _ := ecdh.P384().GenerateKey(rand.Reader)`,
-                codeAfter: `// Go Cryptography FIPS 203 ML-KEM-1024\npk, sk, _ := mlkem1024.GenerateKey()`,
-                guidance: `Drop-in replacement for high-security government VPN tunnels with 1568-byte ciphertexts.`,
-                riskyTitle: `ECDH secp384r1 Vulnerability`,
-                riskyExpl: `Elliptic curves of all standard bit lengths (256, 384, 521) are fully breakable under quantum computing.`
+                name: 'ECDH P-256',
+                category: 'FHIR API Key Exchange',
+                risk: 'CRITICAL',
+                desc: 'FHIR REST interface session keys vulnerable to quantum eavesdropping.',
+                target: 'ML-KEM-768',
+                assetId: 'asset-2'
+            },
+            {
+                name: 'DH-2048',
+                category: 'HL7 Legacy Tunnel',
+                risk: 'CRITICAL',
+                desc: 'Hospital interconnect VPN relies on classical Diffie-Hellman.',
+                target: 'ML-KEM-768',
+                assetId: 'asset-5'
             }
-        ]
+        ],
+        assets: [] // will mirror fintech structure with healthcare adjustments
     },
-    'pqc-reference': {
-        name: 'pqc-reference',
-        branch: 'main',
-        grade: 'GRADE A — QUANTUM RESILIENT',
-        gradeShort: 'GRADE A',
-        gradeBadgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300',
-        gaugeColor: '#10b981',
-        score: 96,
-        discovered: 6,
-        critical: 0,
-        urgency: 0,
-        sla: '• All SLAs Met',
-        safe: 6,
-        summary: "Compliant with NIST Post-Quantum Standards. <strong class='text-slate-900 dark:text-white font-semibold'>100% cryptographic endpoints</strong> verified quantum-resilient.",
-        hndlTarget: "Exposure Target: None (Post-Quantum Protected)",
-        hndlDescription: "All key encapsulation and digital signature handshakes utilize lattice algorithms immune to known quantum attack algorithms.",
-        tasks: []
+
+    gov: {
+        id: 'gov',
+        name: 'Gov Identity Service',
+        runtime: 'Python • PKI authentication',
+        codeLang: 'Python (Cryptography / PKI)',
+        sampleCode: `from cryptography.hazmat.primitives.asymmetric import rsa, ec
+from cryptography.hazmat.primitives import hashes
+
+# Citizen identity signature keypair
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048
+)
+
+# National ID ECDSA Token
+ec_key = ec.generate_private_key(ec.SECP256R1())`,
+        score: 25,
+        scoreBadge: 'CRITICAL',
+        exposureDesc: 'Government classified identity credentials require immediate migration per OMB M-23-02 directive.',
+        totalAssets: 10,
+        criticalCount: 4,
+        highCount: 4,
+        pqcReadyCount: 2,
+        topRisks: [
+            {
+                name: 'RSA-2048',
+                category: 'National ID Digital Signature',
+                risk: 'CRITICAL',
+                desc: "Citizen signature keys vulnerable to retroactive forgery via Shor's algorithm.",
+                target: 'ML-DSA-65',
+                assetId: 'asset-1'
+            },
+            {
+                name: 'ECDSA P-256',
+                category: 'Passport Biometric Token',
+                risk: 'CRITICAL',
+                desc: 'Biometric authorization tokens compromised under CRQC.',
+                target: 'Falcon-512 / ML-DSA',
+                assetId: 'asset-2'
+            },
+            {
+                name: 'DH-2048',
+                category: 'GovCloud VPN Tunnel',
+                risk: 'CRITICAL',
+                desc: 'Classified payload captures subject to HNDL exploitation.',
+                target: 'ML-KEM-1024',
+                assetId: 'asset-5'
+            }
+        ],
+        assets: []
     }
 };
 
-let activeFixTask = null;
-
-// Initialize on Load
-document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
-    renderCurrentRepository();
+// Mirror assets from fintech to health and gov with slight context adjustments if empty
+['health', 'gov'].forEach(repoKey => {
+    REPOSITORIES[repoKey].assets = JSON.parse(JSON.stringify(REPOSITORIES.fintech.assets));
 });
 
-// Switch Repository
-function switchRepository(repoKey) {
-    if (!REPOSITORIES[repoKey]) return;
-    currentRepo = repoKey;
-    closeRepoDropdown();
-    renderCurrentRepository();
-}
+// ============================================================================
+// STATE VARIABLES
+// ============================================================================
+let currentRepoKey = 'fintech';
+let currentView = 'scan';
+let selectedAssetId = 'asset-1';
+let scanInterval = null;
 
-function renderCurrentRepository() {
-    const repo = REPOSITORIES[currentRepo];
-    if (!repo) return;
+// ============================================================================
+// SCAN STAGES DEFINITION FOR HUD
+// ============================================================================
+const SCAN_STAGES = [
+    { title: 'Parsing Abstract Syntax Tree (AST)...', delay: 350 },
+    { title: 'Detecting cryptographic primitives & calls...', delay: 350 },
+    { title: 'Identifying RSA-2048 key exchange (Vulnerable)...', delay: 400 },
+    { title: 'Identifying ECDH P-256 session exchange (Vulnerable)...', delay: 350 },
+    { title: 'Evaluating symmetric key lengths (AES-256-GCM)...', delay: 300 },
+    { title: 'Applying Mosca\'s Theorem (X=10yr, Y=3yr, Z=2031)...', delay: 400 },
+    { title: 'Checking NIST FIPS 203/204/205 compliance...', delay: 350 },
+    { title: 'Calculating Cryptographic Agility score...', delay: 350 },
+    { title: 'Generating CycloneDX 1.6 CBOM standard...', delay: 400 },
+    { title: 'Synthesizing ML-KEM / ML-DSA remediation code...', delay: 450 }
+];
 
-    // Header labels
-    document.getElementById('current-repo-name').textContent = repo.name;
-    document.getElementById('mobile-repo-label').textContent = repo.name;
+// ============================================================================
+// VIEW SWITCHING LOGIC
+// ============================================================================
+function switchView(viewName) {
+    currentView = viewName;
 
-    // Notification badge
-    const badgeCount = repo.tasks.filter(t => !t.resolved).length;
-    document.getElementById('mobile-bell-badge').textContent = badgeCount;
-    document.getElementById('nav-fixes-badge').textContent = badgeCount;
-    document.getElementById('fixes-count-pill').textContent = `${badgeCount} Actionable Tasks`;
-
-    // 1. Mobile Screen Posture Updates
-    document.getElementById('gauge-score-text').textContent = repo.score;
-    document.getElementById('posture-grade-text').textContent = repo.grade;
-    document.getElementById('posture-grade-pill').className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold font-mono uppercase tracking-wide ${repo.gradeBadgeClass}`;
-    document.getElementById('posture-summary-text').innerHTML = repo.summary;
-
-    // Metric counts
-    document.getElementById('stat-discovered').textContent = repo.discovered;
-    document.getElementById('stat-critical').textContent = repo.critical;
-    document.getElementById('stat-urgency').textContent = repo.urgency;
-    document.getElementById('stat-sla').textContent = repo.sla;
-    document.getElementById('stat-safe').textContent = repo.safe;
-
-    // Threat details
-    document.getElementById('hndl-description').textContent = repo.hndlDescription;
-    document.getElementById('hndl-target-text').textContent = repo.hndlTarget;
-
-    // 2. Desktop Posture Updates
-    document.getElementById('desktop-gauge-score-text').textContent = repo.score;
-    document.getElementById('desktop-posture-grade-text').textContent = repo.grade;
-    document.getElementById('desktop-posture-grade-pill').className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono uppercase ${repo.gradeBadgeClass}`;
-    document.getElementById('desktop-posture-summary').innerHTML = repo.summary;
-    document.getElementById('desktop-stat-discovered').textContent = repo.discovered;
-    document.getElementById('desktop-stat-critical').textContent = repo.critical;
-    document.getElementById('desktop-stat-urgency').textContent = repo.urgency;
-    document.getElementById('desktop-stat-sla').textContent = repo.sla;
-    document.getElementById('desktop-stat-safe').textContent = repo.safe;
-    document.getElementById('desktop-hndl-text').textContent = repo.hndlDescription;
-    document.getElementById('desktop-hndl-target').innerHTML = `<i data-lucide="box" class="w-3.5 h-3.5"></i><span>${repo.hndlTarget}</span>`;
-
-    // 3. Animate SVG Gauge Arc
-    // Dasharray is 290 390; offset goes from 290 (0%) down to 0 (100%)
-    const circumference = 290;
-    const offset = Math.round(circumference * (1 - repo.score / 100));
-    
-    const circleEl = document.getElementById('gauge-progress-circle');
-    circleEl.style.strokeDashoffset = offset;
-    circleEl.setAttribute('stroke', repo.gaugeColor);
-
-    const desktopCircle = document.getElementById('desktop-gauge-progress-circle');
-    if (desktopCircle) {
-        desktopCircle.style.strokeDashoffset = offset;
-        desktopCircle.setAttribute('stroke', repo.gaugeColor);
-    }
-
-    // 4. Render Fixes List
-    renderFixesList();
-
-    // Re-create icons
-    lucide.createIcons();
-}
-
-// Render Fixes (Actionable Tasks)
-function renderFixesList() {
-    const repo = REPOSITORIES[currentRepo];
-    const mobileContainer = document.getElementById('fixes-cards-list');
-    const desktopContainer = document.getElementById('desktop-fixes-list');
-
-    mobileContainer.innerHTML = '';
-    desktopContainer.innerHTML = '';
-
-    if (repo.tasks.length === 0) {
-        const emptyHtml = `
-            <div class="p-6 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                <div class="w-12 h-12 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
-                    <i data-lucide="check-circle" class="w-6 h-6"></i>
-                </div>
-                <h4 class="font-bold text-sm text-slate-900 dark:text-white">Zero Vulnerable Primitives</h4>
-                <p class="text-xs text-slate-500">All cryptographic assets comply with NIST FIPS 203/204 Post-Quantum Standards.</p>
-            </div>
-        `;
-        mobileContainer.innerHTML = emptyHtml;
-        desktopContainer.innerHTML = emptyHtml;
-        return;
-    }
-
-    repo.tasks.forEach(task => {
-        // Mobile Task Card (Matching Figma Screen 2 100%)
-        const mCard = document.createElement('div');
-        mCard.className = `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs space-y-2.5 text-left transition-all ${task.resolved ? 'opacity-60 bg-slate-50 dark:bg-slate-950' : ''}`;
-        
-        mCard.innerHTML = `
-            <div class="flex items-center justify-between text-xs">
-                <div class="flex items-center gap-1.5 font-bold font-mono">
-                    <span class="w-2 h-2 rounded-full ${task.resolved ? 'bg-emerald-500' : 'bg-red-500'}"></span>
-                    <span class="${task.resolved ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}">${task.severity} ${task.algorithm}</span>
-                </div>
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono border ${task.badgeColor}">CVSS ${task.cvss}</span>
-            </div>
-            
-            <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                ${task.file} &bull; ${task.purpose}
-            </div>
-
-            <!-- Target Callout Box -->
-            <div class="p-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 ${task.targetCalloutClass}">
-                <i data-lucide="corner-down-right" class="w-4 h-4 ${task.arrowColor} shrink-0"></i>
-                <div>
-                    <span class="text-[9px] uppercase font-bold tracking-wider block text-slate-500 dark:text-slate-400 font-mono">TARGET ARCHITECTURE</span>
-                    <span class="font-bold text-[11px]">${task.target}</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-1.5 text-[10px] text-slate-500">
-                <i data-lucide="lock" class="w-3 h-3 ${task.lockColor}"></i>
-                <span>${task.subtext}</span>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="pt-1 flex items-center gap-2">
-                <button onclick="openFixModal('${task.id}')" class="flex-1 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs">
-                    <i data-lucide="code" class="w-3.5 h-3.5"></i>
-                    <span>${task.resolved ? 'View Applied Fix' : 'View Fix'}</span>
-                </button>
-                <button onclick="openRiskyModal('${task.id}')" class="py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                    Why Risky?
-                </button>
-                <button onclick="simulateBookmark(this)" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white" title="Bookmark Task">
-                    <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-        `;
-        mobileContainer.appendChild(mCard);
-
-        // Desktop Task Card
-        const dCard = document.createElement('div');
-        dCard.className = `p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-3 transition-all ${task.resolved ? 'opacity-60 bg-slate-50' : ''}`;
-        dCard.innerHTML = `
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full ${task.resolved ? 'bg-emerald-500' : 'bg-red-500'}"></span>
-                        <h4 class="font-bold text-sm font-mono text-slate-900 dark:text-white ${task.resolved ? 'line-through' : ''}">${task.severity} ${task.algorithm}</h4>
-                        <span class="px-2 py-0.5 rounded text-xs font-mono font-bold border ${task.badgeColor}">CVSS ${task.cvss}</span>
-                    </div>
-                    <p class="text-xs text-slate-500 font-mono mt-0.5">${task.file} &bull; Purpose: ${task.purpose}</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="openRiskyModal('${task.id}')" class="px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
-                        Why Risky?
-                    </button>
-                    <button onclick="openFixModal('${task.id}')" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                        <i data-lucide="code" class="w-3.5 h-3.5"></i>
-                        <span>${task.resolved ? 'View Applied Fix' : 'View Fix & Code Diff'}</span>
-                    </button>
-                </div>
-            </div>
-            <div class="p-3 rounded-lg text-xs flex items-center gap-3 ${task.targetCalloutClass}">
-                <i data-lucide="corner-down-right" class="w-4 h-4 ${task.arrowColor}"></i>
-                <div>
-                    <span class="text-[10px] uppercase font-bold font-mono text-slate-400 block">TARGET NIST ARCHITECTURE</span>
-                    <span class="font-bold text-xs">${task.target}</span>
-                </div>
-            </div>
-        `;
-        desktopContainer.appendChild(dCard);
+    // Update View Panels
+    document.querySelectorAll('.view-panel').forEach(panel => {
+        panel.classList.add('hidden');
     });
+
+    const activePanel = document.getElementById(`view-${viewName}`);
+    if (activePanel) {
+        activePanel.classList.remove('hidden');
+        activePanel.classList.add('view-fade');
+    }
+
+    // Update Sidebar Item Active States
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    const activeNav = document.getElementById(`nav-${viewName}`);
+    if (activeNav) {
+        activeNav.classList.add('active');
+    }
+
+    // Render corresponding view data
+    if (viewName === 'executive') {
+        renderExecutiveView();
+    } else if (viewName === 'risk') {
+        renderRiskManagerView();
+    } else if (viewName === 'analyst') {
+        renderAnalystView();
+    }
+
+    // Refresh Lucide Icons
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
-// Tab Switching inside Mobile App View
-function switchMobileTab(tabId) {
-    currentTab = tabId;
-    ['posture', 'fixes', 'repos', 'reports'].forEach(t => {
-        const tabEl = document.getElementById(`tab-${t}`);
-        const btnEl = document.getElementById(`nav-btn-${t}`);
-        if (t === tabId) {
-            tabEl.classList.remove('hidden');
-            btnEl.className = "flex flex-col items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold transition-colors";
-        } else {
-            tabEl.classList.add('hidden');
-            btnEl.className = "flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium transition-colors";
+// ============================================================================
+// REPO SELECTION
+// ============================================================================
+function selectScanRepo(repoKey) {
+    currentRepoKey = repoKey;
+    const repo = REPOSITORIES[repoKey];
+
+    // Highlight selected card
+    ['fintech', 'health', 'gov'].forEach(k => {
+        const card = document.getElementById(`scan-repo-${k}`);
+        if (card) {
+            if (k === repoKey) {
+                card.className = 'scan-repo-card active p-3 rounded-xl border-2 border-indigo-600 bg-indigo-950/30 text-left transition-all';
+            } else {
+                card.className = 'scan-repo-card p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 text-left transition-all';
+            }
         }
     });
-    lucide.createIcons();
-}
 
-// Device View Toggle (Mobile vs Desktop)
-function setDeviceView(mode) {
-    currentDevice = mode;
-    const btnMobile = document.getElementById('btn-view-mobile');
-    const btnDesktop = document.getElementById('btn-view-desktop');
-    const containerMobile = document.getElementById('mobile-view-container');
-    const containerDesktop = document.getElementById('desktop-view-container');
+    // Update Code & Labels
+    const codeArea = document.getElementById('scan-source-code');
+    const langLabel = document.getElementById('code-lang-label');
+    const sidebarLabel = document.getElementById('sidebar-repo-label');
 
-    if (mode === 'mobile') {
-        btnMobile.className = "px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white flex items-center gap-1 font-semibold";
-        btnDesktop.className = "px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 font-semibold";
-        containerMobile.classList.remove('hidden');
-        containerDesktop.classList.add('hidden');
-    } else {
-        btnDesktop.className = "px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white flex items-center gap-1 font-semibold";
-        btnMobile.className = "px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 font-semibold";
-        containerMobile.classList.add('hidden');
-        containerDesktop.classList.remove('hidden');
+    if (codeArea) codeArea.value = repo.sampleCode;
+    if (langLabel) langLabel.textContent = repo.codeLang;
+    if (sidebarLabel) {
+        sidebarLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ${repo.name}`;
     }
-    lucide.createIcons();
+
+    // Update breadcrumbs across views
+    const execBc = document.getElementById('exec-breadcrumb');
+    const riskBc = document.getElementById('risk-breadcrumb');
+    const analystBc = document.getElementById('analyst-breadcrumb');
+
+    if (execBc) execBc.textContent = `EXECUTIVE VIEW • ${repo.name.toUpperCase()}`;
+    if (riskBc) riskBc.textContent = `RISK & MIGRATION MANAGER • ${repo.name.toUpperCase()}`;
+    if (analystBc) analystBc.textContent = `SECURITY ANALYST • ${repo.name.toUpperCase()}`;
 }
 
-// Theme Toggle (Light / Dark)
+// ============================================================================
+// SCANNING SEQUENCE & HUD CHECKLIST
+// ============================================================================
+function startScanningSequence() {
+    const overlay = document.getElementById('scan-hud-overlay');
+    const checklistContainer = document.getElementById('scan-checklist-container');
+    const progressBar = document.getElementById('scan-progress-bar');
+    const pctBadge = document.getElementById('scan-pct-badge');
+
+    overlay.classList.remove('hidden');
+    checklistContainer.innerHTML = '';
+    progressBar.style.width = '0%';
+    pctBadge.textContent = '0%';
+
+    let stepIndex = 0;
+    const totalSteps = SCAN_STAGES.length;
+
+    // Render placeholder steps
+    SCAN_STAGES.forEach((stage, idx) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.id = `scan-step-${idx}`;
+        stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/60 text-slate-500';
+        stepDiv.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                <span>${stage.title}</span>
+            </div>
+            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-600">pending</span>
+        `;
+        checklistContainer.appendChild(stepDiv);
+    });
+
+    function processNextStep() {
+        if (stepIndex >= totalSteps) {
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                switchView('executive');
+            }, 600);
+            return;
+        }
+
+        const currentStage = SCAN_STAGES[stepIndex];
+        const stepDiv = document.getElementById(`scan-step-${stepIndex}`);
+        
+        if (stepDiv) {
+            stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-indigo-950/30 border border-indigo-500/40 text-indigo-300';
+            stepDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+                    <span class="text-white">${currentStage.title}</span>
+                </div>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-400">running...</span>
+            `;
+        }
+
+        setTimeout(() => {
+            if (stepDiv) {
+                stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-emerald-900/40 text-slate-300';
+                stepDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>${currentStage.title}</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">DONE</span>
+                `;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            stepIndex++;
+            const pct = Math.round((stepIndex / totalSteps) * 100);
+            progressBar.style.width = `${pct}%`;
+            pctBadge.textContent = `${pct}%`;
+
+            processNextStep();
+        }, currentStage.delay);
+    }
+
+    processNextStep();
+}
+
+function skipScanToResults() {
+    const overlay = document.getElementById('scan-hud-overlay');
+    overlay.classList.add('hidden');
+    switchView('executive');
+}
+
+// ============================================================================
+// EXECUTIVE VIEW RENDER
+// ============================================================================
+function renderExecutiveView() {
+    const repo = REPOSITORIES[currentRepoKey];
+
+    // Score & Badges
+    const scoreElem = document.getElementById('exec-readiness-score');
+    const badgeElem = document.getElementById('exec-score-badge');
+    const descElem = document.getElementById('exec-exposure-desc');
+
+    if (scoreElem) scoreElem.textContent = repo.score;
+    if (badgeElem) badgeElem.textContent = repo.scoreBadge;
+    if (descElem) descElem.textContent = repo.exposureDesc;
+
+    // Stat Cards
+    document.getElementById('stat-total-assets').textContent = repo.totalAssets;
+    document.getElementById('stat-critical-assets').textContent = repo.criticalCount;
+    document.getElementById('stat-high-assets').textContent = repo.highCount;
+    document.getElementById('stat-pqc-ready-assets').textContent = repo.pqcReadyCount;
+
+    // Top 3 Risks Cards
+    const container = document.getElementById('top-risks-container');
+    container.innerHTML = '';
+
+    repo.topRisks.forEach(risk => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950/60 p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between';
+        card.innerHTML = `
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-white font-mono">${risk.name}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono bg-red-500/15 border border-red-500/30 text-red-400 uppercase">${risk.risk}</span>
+                </div>
+                <div class="text-[11px] font-medium text-slate-400 mt-1">${risk.category}</div>
+                <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">${risk.desc}</p>
+                <div class="mt-3 pt-3 border-t border-slate-800/80 text-[11px]">
+                    <span class="text-slate-500 font-mono">Target:</span>
+                    <span class="text-emerald-400 font-mono font-semibold ml-1">${risk.target}</span>
+                </div>
+            </div>
+            <button onclick="inspectSpecificAsset('${risk.assetId}')" class="mt-4 w-full py-1.5 rounded-lg border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-xs font-semibold text-indigo-400 flex items-center justify-center gap-1.5 transition-colors">
+                <span>Inspect in Analyst</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+        `;
+        container.appendChild(card);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function inspectSpecificAsset(assetId) {
+    selectedAssetId = assetId;
+    switchView('analyst');
+}
+
+// ============================================================================
+// RISK MANAGER VIEW RENDER & PROGRESS TRACKING
+// ============================================================================
+function renderRiskManagerView() {
+    const repo = REPOSITORIES[currentRepoKey];
+    const tbody = document.getElementById('risk-table-body');
+    tbody.innerHTML = '';
+
+    // Calculate migration progress
+    const total = repo.assets.length;
+    const migrated = repo.assets.filter(a => a.status === 'Migrated').length;
+    const pct = Math.round((migrated / total) * 100);
+
+    document.getElementById('migrated-count-label').textContent = migrated;
+    document.getElementById('total-count-label').textContent = total;
+    document.getElementById('migrated-pct-label').textContent = `${pct}% complete`;
+    document.getElementById('migration-progress-bar').style.width = `${pct}%`;
+
+    repo.assets.forEach(asset => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-800/30 transition-colors';
+
+        // Risk badge colors
+        let riskBadgeClass = 'bg-red-500/15 border-red-500/30 text-red-400';
+        if (asset.risk === 'HIGH') riskBadgeClass = 'bg-amber-500/15 border-amber-500/30 text-amber-400';
+        if (asset.risk === 'SAFE') riskBadgeClass = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
+
+        // Status badge / selector styling
+        row.innerHTML = `
+            <td class="py-3.5 px-4 font-mono">
+                <div class="font-bold text-white text-xs">${asset.name}</div>
+                <div class="text-[11px] text-slate-500">${asset.location}</div>
+            </td>
+            <td class="py-3.5 px-4">
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono border ${riskBadgeClass}">
+                    ${asset.risk}
+                </span>
+            </td>
+            <td class="py-3.5 px-4 font-mono text-[11px] text-slate-300">
+                ${asset.moscaFormula}
+            </td>
+            <td class="py-3.5 px-4">
+                <select onchange="updateAssetStatus('${asset.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-mono font-medium focus:outline-none focus:border-indigo-500 text-slate-300">
+                    <option value="Not Started" ${asset.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                    <option value="In Progress" ${asset.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                    <option value="Migrated" ${asset.status === 'Migrated' ? 'selected' : ''}>Migrated</option>
+                </select>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+                <button onclick="inspectSpecificAsset('${asset.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold inline-flex items-center gap-1 transition-colors">
+                    <span>Inspect</span>
+                    <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function updateAssetStatus(assetId, newStatus) {
+    const repo = REPOSITORIES[currentRepoKey];
+    const asset = repo.assets.find(a => a.id === assetId);
+    if (asset) {
+        asset.status = newStatus;
+        renderRiskManagerView();
+    }
+}
+
+// ============================================================================
+// ANALYST VIEW RENDER & DETAIL INSPECTOR
+// ============================================================================
+function renderAnalystView() {
+    const repo = REPOSITORIES[currentRepoKey];
+    const listContainer = document.getElementById('analyst-assets-list');
+    listContainer.innerHTML = '';
+
+    repo.assets.forEach(asset => {
+        const btn = document.createElement('button');
+        const isActive = asset.id === selectedAssetId;
+        
+        let riskColor = 'text-red-400 bg-red-500/10 border-red-500/30';
+        if (asset.risk === 'HIGH') riskColor = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+        if (asset.risk === 'SAFE') riskColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+
+        btn.className = `w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+            isActive 
+                ? 'bg-indigo-950/40 border-indigo-500/60 shadow-md' 
+                : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700'
+        }`;
+        
+        btn.onclick = () => {
+            selectedAssetId = asset.id;
+            renderAnalystView();
+        };
+
+        btn.innerHTML = `
+            <div>
+                <div class="font-bold text-xs font-mono ${isActive ? 'text-indigo-300' : 'text-white'}">${asset.name}</div>
+                <div class="text-[11px] text-slate-400 mt-0.5 truncate">${asset.role}</div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${riskColor}">${asset.risk}</span>
+        `;
+
+        listContainer.appendChild(btn);
+    });
+
+    // Populate Right Inspector Pane
+    const currentAsset = repo.assets.find(a => a.id === selectedAssetId) || repo.assets[0];
+    if (currentAsset) {
+        document.getElementById('inspector-name').textContent = currentAsset.name;
+        
+        const badge = document.getElementById('inspector-badge');
+        badge.textContent = currentAsset.risk;
+        if (currentAsset.risk === 'CRITICAL') {
+            badge.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-red-500/15 border border-red-500/30 text-red-400';
+        } else if (currentAsset.risk === 'HIGH') {
+            badge.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-500/15 border border-amber-500/30 text-amber-400';
+        } else {
+            badge.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-emerald-500/15 border border-emerald-500/30 text-emerald-400';
+        }
+
+        // Meta chips
+        const metaChips = document.getElementById('inspector-meta-chips');
+        metaChips.innerHTML = `
+            <span class="px-2 py-0.5 rounded bg-slate-800/80">Key Length: ${currentAsset.keyLength}</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800/80">Location: ${currentAsset.location}</span>
+            <span class="px-2 py-0.5 rounded bg-slate-800/80">Family: ${currentAsset.family}</span>
+        `;
+
+        // Finding details tab
+        document.getElementById('inspector-purpose').textContent = currentAsset.purpose;
+        
+        const riskTitle = document.getElementById('inspector-risk-title');
+        if (currentAsset.risk === 'SAFE') {
+            riskTitle.textContent = 'Why is this safe?';
+            riskTitle.className = 'text-[10px] uppercase font-mono font-bold tracking-wider text-emerald-400';
+        } else {
+            riskTitle.textContent = 'Why is this risky?';
+            riskTitle.className = 'text-[10px] uppercase font-mono font-bold tracking-wider text-red-400';
+        }
+
+        document.getElementById('inspector-risk-reason').textContent = currentAsset.riskReason;
+        document.getElementById('inspector-mosca-formula').textContent = currentAsset.moscaFormula;
+        document.getElementById('inspector-mosca-desc').textContent = currentAsset.moscaDesc;
+        document.getElementById('inspector-replacement').textContent = currentAsset.replacement;
+
+        // Remediation tab
+        document.getElementById('code-filepath-before').textContent = currentAsset.location.split(':')[0];
+        document.getElementById('remediation-before-code').textContent = currentAsset.beforeCode;
+        document.getElementById('remediation-after-code').textContent = currentAsset.afterCode;
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function switchInspectorTab(tabName) {
+    const findingTab = document.getElementById('inspector-tab-finding');
+    const remediationTab = document.getElementById('inspector-tab-remediation');
+    const btnFinding = document.getElementById('tab-btn-finding');
+    const btnRemediation = document.getElementById('tab-btn-remediation');
+
+    if (tabName === 'finding') {
+        findingTab.classList.remove('hidden');
+        remediationTab.classList.add('hidden');
+        btnFinding.className = 'pb-2.5 border-b-2 border-indigo-500 text-indigo-400 transition-all';
+        btnRemediation.className = 'pb-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5';
+    } else {
+        findingTab.classList.add('hidden');
+        remediationTab.classList.remove('hidden');
+        btnFinding.className = 'pb-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all';
+        btnRemediation.className = 'pb-2.5 border-b-2 border-indigo-500 text-indigo-400 transition-all flex items-center gap-1.5';
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function copyRemediatedCode() {
+    const codeElem = document.getElementById('remediation-after-code');
+    const btnLabel = document.getElementById('copy-btn-label');
+    if (codeElem) {
+        navigator.clipboard.writeText(codeElem.textContent).then(() => {
+            btnLabel.textContent = 'Copied!';
+            setTimeout(() => {
+                btnLabel.textContent = 'Copy Code';
+            }, 2000);
+        });
+    }
+}
+
+// ============================================================================
+// THEME TOGGLING (DARK / LIGHT MODE)
+// ============================================================================
 function toggleTheme() {
-    const html = document.documentElement;
-    if (html.classList.contains('dark')) {
-        html.classList.remove('dark');
-        currentTheme = 'light';
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        document.getElementById('theme-label').textContent = 'Light mode';
+        document.getElementById('theme-toggle-thumb').className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-0';
+        document.getElementById('theme-toggle-btn').className = 'w-11 h-6 bg-slate-300 rounded-full p-1 relative transition-colors focus:outline-none';
+        document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
     } else {
-        html.classList.add('dark');
-        currentTheme = 'dark';
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        document.getElementById('theme-label').textContent = 'Dark mode';
+        document.getElementById('theme-toggle-thumb').className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-5';
+        document.getElementById('theme-toggle-btn').className = 'w-11 h-6 bg-indigo-600 rounded-full p-1 relative transition-colors focus:outline-none';
+        document.getElementById('theme-icon').setAttribute('data-lucide', 'moon');
     }
+    if (window.lucide) lucide.createIcons();
 }
 
-// Dropdown Controls
-function toggleRepoDropdown() {
-    const menu = document.getElementById('repo-dropdown-menu');
-    menu.classList.toggle('hidden');
-}
-
-function closeRepoDropdown() {
-    const menu = document.getElementById('repo-dropdown-menu');
-    menu.classList.add('hidden');
-}
-
-// Modal: View Fix & Code Diff
-function openFixModal(taskId) {
-    const repo = REPOSITORIES[currentRepo];
-    const task = repo.tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    activeFixTask = task;
-    document.getElementById('modal-fix-title').textContent = `Remediate ${task.algorithm} → ${task.target.split(' ')[2] || task.target}`;
-    document.getElementById('modal-fix-file').textContent = `${task.file} • ${task.purpose}`;
-    document.getElementById('modal-code-before').textContent = task.codeBefore;
-    document.getElementById('modal-code-after').textContent = task.codeAfter;
-    document.getElementById('modal-fix-guidance').textContent = task.guidance;
-    
-    const applyBtn = document.getElementById('btn-apply-fix');
-    if (task.resolved) {
-        applyBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Remediation Already Applied</span>`;
-        applyBtn.disabled = true;
-        applyBtn.className = "px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-default";
-    } else {
-        applyBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Apply Remediation (Simulate Migration)</span>`;
-        applyBtn.disabled = false;
-        applyBtn.className = "px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm";
-    }
-
-    document.getElementById('fix-modal').classList.remove('hidden');
-    lucide.createIcons();
-}
-
-function closeFixModal() {
-    document.getElementById('fix-modal').classList.add('hidden');
-    activeFixTask = null;
-}
-
-function applySimulatedFix() {
-    if (!activeFixTask) return;
-    activeFixTask.resolved = true;
-    
-    // Increase repo readiness score
-    const repo = REPOSITORIES[currentRepo];
-    repo.score = Math.min(100, repo.score + 18);
-    repo.critical = Math.max(0, repo.critical - 1);
-    repo.safe = repo.safe + 1;
-    if (repo.score > 75) {
-        repo.grade = 'GRADE A — QUANTUM RESILIENT';
-        repo.gaugeColor = '#10b981';
-    } else if (repo.score > 40) {
-        repo.grade = 'GRADE B — MIGRATION IN PROGRESS';
-        repo.gaugeColor = '#f59e0b';
-    }
-
-    closeFixModal();
-    renderCurrentRepository();
-}
-
-// Modal: Why Risky?
-function openRiskyModal(taskId) {
-    const repo = REPOSITORIES[currentRepo];
-    const task = repo.tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    document.getElementById('risky-modal-title').textContent = task.riskyTitle;
-    document.getElementById('risky-modal-content').innerHTML = `
-        <p><strong>Cryptographic Threat:</strong> ${task.riskyExpl}</p>
-        <p class="pt-2"><strong>Recommended Action:</strong> ${task.target}. Standardized by NIST FIPS in 2024 to defend against Harvest Now, Decrypt Later (HNDL) attacks.</p>
-    `;
-    document.getElementById('risky-modal').classList.remove('hidden');
-    lucide.createIcons();
-}
-
-function closeRiskyModal() {
-    document.getElementById('risky-modal').classList.add('hidden');
-}
-
-// Modal: Scan Custom Code
-function openCustomScanModal() {
-    document.getElementById('scan-modal').classList.remove('hidden');
-    closeRepoDropdown();
-    lucide.createIcons();
-}
-
-function closeCustomScanModal() {
-    document.getElementById('scan-modal').classList.add('hidden');
-}
-
-function loadSampleCode() {
-    document.getElementById('custom-code-input').value = `import hashlib\nfrom Crypto.PublicKey import RSA\nfrom Crypto.Cipher import AES\n\n# User custom banking authentication\ndef init_session():\n    rsa_key = RSA.generate(2048)\n    token_hash = hashlib.md5(b"auth_token").hexdigest()\n    cipher = AES.new(b"16bytekey1234567", AES.MODE_CBC)\n    return rsa_key, token_hash, cipher`;
-}
-
-function runCustomCodeScan() {
-    const code = document.getElementById('custom-code-input').value.trim();
-    if (!code) {
-        alert("Please paste code before running scan!");
-        return;
-    }
-    
-    // Simulate AST scanner
-    closeCustomScanModal();
-    alert("AST Scan Complete! Identified 3 cryptographic primitives: RSA-2048 (Vulnerable), MD5 (Broken), AES-128 (Upgrade required). Loading report in Posture view.");
-    switchRepository('finpay-auth');
-    switchMobileTab('fixes');
-}
-
-function simulateBookmark(btn) {
-    btn.classList.toggle('text-indigo-600');
-    btn.classList.toggle('dark:text-indigo-400');
-}
-
-// Export CBOM (CycloneDX JSON)
-function exportCbomJson() {
-    const repo = REPOSITORIES[currentRepo];
+// ============================================================================
+// EXPORT CYCLONEDX CBOM JSON
+// ============================================================================
+function exportCBOMJson() {
+    const repo = REPOSITORIES[currentRepoKey];
     const cbom = {
-        bomFormat: "CycloneDX",
-        specVersion: "1.6",
+        bomFormat: 'CycloneDX',
+        specVersion: '1.6',
         serialNumber: `urn:uuid:${Math.random().toString(36).substring(2, 15)}`,
         version: 1,
         metadata: {
             timestamp: new Date().toISOString(),
+            tools: [{ vendor: 'ECDAT', name: 'Post-Quantum Scanner', version: '0.1.0' }],
             component: {
+                type: 'application',
                 name: repo.name,
-                type: "application",
-                version: "1.0.0"
-            },
-            tools: [
-                { vendor: "ECDAT", name: "Post-Quantum Cryptographic Discovery Tool", version: "2.4.0" }
-            ]
+                version: '1.0.0'
+            }
         },
-        cryptographicAssets: repo.tasks.map(t => ({
-            algorithm: t.algorithm,
-            purpose: t.purpose,
-            file: t.file,
-            quantumResistant: t.resolved,
-            cvssScore: parseFloat(t.cvss),
-            recommendedStandard: t.target
+        cryptographicAssets: repo.assets.map(asset => ({
+            name: asset.name,
+            type: asset.family,
+            location: asset.location,
+            quantumVulnerability: asset.risk,
+            moscaTheoremEvaluation: asset.moscaFormula,
+            targetStandard: asset.replacement
         }))
     };
 
-    const blob = new Blob([JSON.stringify(cbom, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(cbom, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `CBOM-${repo.name}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `cbom-${repo.id}-cyclonedx.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
 
-// Export Audit PDF Memo
-function exportAuditPdf() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const repo = REPOSITORIES[currentRepo];
-
-    // Header
-    doc.setFillColor(15, 23, 42); // Slate 900
-    doc.rect(0, 0, 210, 36, "F");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(255, 255, 255);
-    doc.text("ECDAT | Post-Quantum Cryptographic Audit Memo", 14, 18);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(148, 163, 184); // Slate 400
-    doc.text(`Repository: ${repo.name} | NIST FIPS 203/204 Compliance Assessment | Generated: ${new Date().toLocaleDateString()}`, 14, 28);
-
-    // Executive Summary
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("1. Executive Security Posture", 14, 48);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(51, 65, 85);
-    doc.text(`Overall Quantum Readiness Score: ${repo.score} / 100 (${repo.gradeShort})`, 14, 56);
-    doc.text(`Cryptographic Assets Discovered: ${repo.discovered}`, 14, 62);
-    doc.text(`High-Exposure Assets Requiring Immediate Migration: ${repo.critical}`, 14, 68);
-    doc.text(`Harvest Now, Decrypt Later (HNDL) Horizon: Critical Risk (Mosca X+Y > Z)`, 14, 74);
-
-    // Table of Findings
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(15, 23, 42);
-    doc.text("2. Cryptographic Remediation Schedule", 14, 90);
-
-    const rows = repo.tasks.map(t => [
-        t.algorithm,
-        t.purpose,
-        t.file,
-        `CVSS ${t.cvss}`,
-        t.target.split(' (')[0],
-        t.resolved ? "RESOLVED" : "ACTION REQUIRED"
-    ]);
-
-    doc.autoTable({
-        startY: 96,
-        head: [['Algorithm', 'Purpose', 'Location', 'CVSS', 'NIST Target Architecture', 'Status']],
-        body: rows,
-        headStyles: { fillColor: [79, 70, 229] },
-        styles: { fontSize: 8 }
-    });
-
-    doc.save(`ECDAT-Post-Quantum-Audit-${repo.name}.pdf`);
-}
-
-// Close dropdown on click outside
-window.addEventListener('click', (e) => {
-    const dropdown = document.getElementById('repo-dropdown-menu');
-    const btn = document.getElementById('repo-dropdown-btn');
-    if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-        closeRepoDropdown();
-    }
+// ============================================================================
+// INITIALIZATION ON LOAD
+// ============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    selectScanRepo('fintech');
+    switchView('scan');
 });

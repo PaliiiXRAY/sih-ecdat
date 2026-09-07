@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECDAT | Post-Quantum Cryptographic Migration Platform</title>
+    <title>ECDAT — Enterprise Post-Quantum Cryptographic Migration Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,6 +14,7 @@
                         brand: {
                             50: '#eef2ff',
                             100: '#e0e7ff',
+                            400: '#818cf8',
                             500: '#6366f1',
                             600: '#4f46e5',
                             700: '#4338ca',
@@ -25,625 +26,496 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Exact layout refinements matching video */
+        .sidebar-item.active {
+            background-color: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border-left: 3px solid #6366f1;
+        }
+        .light .sidebar-item.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-left: 3px solid #4f46e5;
+        }
+        .hero-space-bg {
+            background: linear-gradient(180deg, rgba(10, 15, 30, 0.75) 0%, rgba(5, 8, 20, 0.95) 100%),
+                        url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
+        }
+        .light .hero-space-bg {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.96) 100%),
+                        url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
+        }
+    </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200">
 
-    <!-- Top Master Navigation Bar -->
-    <header class="bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 px-4 sm:px-6 py-2.5 transition-colors">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            
-            <!-- Left: Logo & Repository Dropdown -->
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-slate-900 dark:bg-indigo-600 flex items-center justify-center text-white shadow-md">
-                    <i data-lucide="shield" class="w-5 h-5 text-indigo-400 dark:text-white"></i>
+    <!-- ========================================================================= -->
+    <!-- LEFT SIDEBAR                                                              -->
+    <!-- ========================================================================= -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 z-40 transition-colors duration-200">
+        <div>
+            <!-- Logo Section -->
+            <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-extrabold text-white font-mono shadow-md shadow-indigo-500/20 text-sm tracking-wider">
+                    EC
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">ECDAT</span>
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono">PQC</span>
+                    <div class="font-extrabold text-lg tracking-tight text-white flex items-center gap-1.5">
+                        <span>ECDAT</span>
                     </div>
-                    <span class="text-[11px] text-slate-500 dark:text-slate-400 block -mt-0.5 font-medium">Post-Quantum Posture</span>
-                </div>
-
-                <!-- Repository Selector Dropdown -->
-                <div class="relative ml-2 sm:ml-4">
-                    <button onclick="toggleRepoDropdown()" id="repo-dropdown-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-all">
-                        <i data-lucide="box" class="w-3.5 h-3.5 text-indigo-500"></i>
-                        <span id="current-repo-name" class="font-mono text-slate-900 dark:text-white">finpay-auth</span>
-                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">&rarr; main</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <div id="repo-dropdown-menu" class="hidden absolute left-0 mt-1.5 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1 z-50 text-xs">
-                        <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-slate-400 tracking-wider">Demo Repositories</div>
-                        <button onclick="switchRepository('finpay-auth')" class="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between">
-                            <div>
-                                <div class="font-bold text-slate-900 dark:text-white font-mono">finpay-auth</div>
-                                <div class="text-[11px] text-slate-500">FinTech Banking &bull; 8 Assets &bull; Grade D</div>
-                            </div>
-                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                        </button>
-                        <button onclick="switchRepository('secure-comms')" class="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between">
-                            <div>
-                                <div class="font-bold text-slate-900 dark:text-white font-mono">secure-comms</div>
-                                <div class="text-[11px] text-slate-500">Defense VPN Comms &bull; 12 Assets &bull; Grade C</div>
-                            </div>
-                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        </button>
-                        <button onclick="switchRepository('pqc-reference')" class="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between">
-                            <div>
-                                <div class="font-bold text-slate-900 dark:text-white font-mono">pqc-reference</div>
-                                <div class="text-[11px] text-slate-500">NIST PQC Validated &bull; 6 Assets &bull; Grade A</div>
-                            </div>
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        </button>
-                        <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
-                        <button onclick="openCustomScanModal()" class="w-full px-3 py-2 text-left text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-semibold flex items-center gap-1.5">
-                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Scan Custom Code / Repo
-                        </button>
+                    <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                        <span>v0.1</span>
+                        <span>•</span>
+                        <span class="text-indigo-400 font-semibold">NIST PQC</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: View Mode Toggle, Theme Toggle & Action Buttons -->
-            <div class="flex items-center gap-2">
-                <!-- Device View Toggle (Mobile Frame vs Desktop) -->
-                <div class="inline-flex bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg text-xs font-semibold">
-                    <button onclick="setDeviceView('mobile')" id="btn-view-mobile" class="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white flex items-center gap-1">
-                        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
-                        <span>Mobile View</span>
-                    </button>
-                    <button onclick="setDeviceView('desktop')" id="btn-view-desktop" class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1">
-                        <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
-                        <span>Desktop</span>
-                    </button>
+            <!-- Navigation Links -->
+            <nav class="p-3 space-y-1.5 text-sm font-medium">
+                <button onclick="switchView('scan')" id="nav-scan" class="sidebar-item active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all text-left">
+                    <i data-lucide="scan" class="w-4 h-4"></i>
+                    <span>Scan</span>
+                </button>
+
+                <button onclick="switchView('executive')" id="nav-executive" class="sidebar-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all text-left">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Executive</span>
+                </button>
+
+                <button onclick="switchView('risk')" id="nav-risk" class="sidebar-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all text-left">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    <span>Risk Manager</span>
+                </button>
+
+                <button onclick="switchView('analyst')" id="nav-analyst" class="sidebar-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all text-left">
+                    <i data-lucide="code-2" class="w-4 h-4"></i>
+                    <span>{/} Analyst</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Bottom: Active Target Repo & Dark Mode Toggle -->
+        <div class="p-4 border-t border-slate-800 space-y-4">
+            <!-- Active Target Info -->
+            <div class="bg-slate-800/50 rounded-lg p-2.5 border border-slate-800">
+                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Target</div>
+                <div class="text-xs font-semibold text-white mt-0.5 truncate flex items-center gap-1.5" id="sidebar-repo-label">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    FinTech API Gateway
                 </div>
+            </div>
 
-                <!-- Theme Toggle -->
-                <button onclick="toggleTheme()" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
-                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
-                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-slate-600"></i>
-                </button>
-
-                <!-- Export Buttons -->
-                <button onclick="exportCbomJson()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-2xs">
-                    <i data-lucide="file-code" class="w-3.5 h-3.5 text-indigo-500"></i>
-                    <span>CBOM JSON</span>
-                </button>
-                <button onclick="exportAuditPdf()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm">
-                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                    <span>Export PDF</span>
+            <!-- Dark Mode Toggle Switch -->
+            <div class="flex items-center justify-between text-xs font-medium text-slate-400 pt-1">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="moon" id="theme-icon" class="w-4 h-4 text-indigo-400"></i>
+                    <span id="theme-label">Dark mode</span>
+                </div>
+                <!-- Toggle Button -->
+                <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-11 h-6 bg-indigo-600 rounded-full p-1 relative transition-colors focus:outline-none">
+                    <div id="theme-toggle-thumb" class="w-4 h-4 bg-white rounded-full transition-transform translate-x-5"></div>
                 </button>
             </div>
         </div>
-    </header>
+    </aside>
 
-    <!-- Main Content Container -->
-    <main class="py-6 px-3 sm:px-6">
+    <!-- ========================================================================= -->
+    <!-- MAIN CONTENT VIEWPORT                                                     -->
+    <!-- ========================================================================= -->
+    <main class="flex-1 overflow-y-auto h-screen relative bg-slate-950 text-slate-100 transition-colors duration-200" id="main-viewport">
 
-        <!-- ============================================================ -->
-        <!-- 1. MOBILE APP VIEW (MATCHING FIGMA 100% WITH IPHONE FRAME)   -->
-        <!-- ============================================================ -->
-        <div id="mobile-view-container" class="max-w-md mx-auto">
-            <!-- Outer Phone Mockup Frame -->
-            <div class="phone-mockup-frame bg-white dark:bg-slate-900 rounded-[44px] overflow-hidden border-8 border-slate-900 dark:border-slate-800 relative transition-all duration-300">
-                
-                <!-- Phone Top Speaker / Notch & Status Bar -->
-                <div class="bg-white dark:bg-slate-900 pt-3 px-6 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-800 dark:text-slate-200 select-none">
-                    <span class="font-mono">9:41</span>
-                    <div class="w-20 h-4 bg-slate-900 dark:bg-slate-800 rounded-full mx-auto"></div>
-                    <div class="flex items-center gap-1.5">
-                        <i data-lucide="signal" class="w-3 h-3"></i>
-                        <i data-lucide="wifi" class="w-3 h-3"></i>
-                        <i data-lucide="battery-full" class="w-3.5 h-3.5 text-emerald-500"></i>
-                    </div>
-                </div>
-
-                <!-- Phone Header (Matching Figma) -->
-                <div class="px-5 py-2.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center text-white">
-                            <i data-lucide="shield" class="w-4 h-4 text-indigo-400"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs font-black tracking-tight text-slate-900 dark:text-white">ECDAT</span>
-                                <span class="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-mono">PQC</span>
-                            </div>
-                            <span class="text-[9px] text-slate-400 block font-medium -mt-0.5">Executive Posture</span>
-                        </div>
-                    </div>
-
-                    <!-- Mini Repo Pill inside mobile frame -->
-                    <button onclick="toggleRepoDropdown()" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-mono text-slate-700 dark:text-slate-300">
-                        <i data-lucide="box" class="w-3 h-3 text-indigo-500"></i>
-                        <span id="mobile-repo-label" class="font-bold">finpay-auth</span>
-                        <i data-lucide="chevron-down" class="w-2.5 h-2.5 text-slate-400"></i>
-                    </button>
-
-                    <div class="flex items-center gap-2">
-                        <div class="relative cursor-pointer" onclick="switchMobileTab('fixes')">
-                            <i data-lucide="bell" class="w-4 h-4 text-slate-600 dark:text-slate-300"></i>
-                            <span id="mobile-bell-badge" class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">3</span>
-                        </div>
-                        <div class="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
-                            <span>NT</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Scrollable Mobile Content Area -->
-                <div class="p-4 space-y-4 max-h-[640px] overflow-y-auto bg-slate-50/50 dark:bg-slate-950/50" id="mobile-screen-content">
-                    
-                    <!-- TAB 1: POSTURE (MATCHING FIGMA SCREEN 1) -->
-                    <div id="tab-posture" class="space-y-4 tab-content">
-                        
-                        <!-- Main Card: Post-Quantum Posture -->
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-center space-y-3">
-                            <div class="flex items-center justify-between text-[11px] font-mono">
-                                <div class="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-bold uppercase tracking-wider">
-                                    <span class="w-2 h-2 rounded-full bg-red-500 pulse-dot"></span>
-                                    <span>POST-QUANTUM POSTURE</span>
-                                </div>
-                                <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold">CRQC Model v4.2</span>
-                            </div>
-
-                            <!-- Circular Readiness Gauge (SVG) -->
-                            <div class="relative w-44 h-44 mx-auto flex items-center justify-center">
-                                <svg class="w-full h-full" viewBox="0 0 160 160">
-                                    <!-- Background track -->
-                                    <circle class="gauge-circle-bg" cx="80" cy="80" r="62" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="290 390" />
-                                    <!-- Animated fill -->
-                                    <circle id="gauge-progress-circle" class="gauge-circle-fill" cx="80" cy="80" r="62" stroke="#ef4444" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="290 390" stroke-dashoffset="232" />
-                                </svg>
-                                <!-- Center Text -->
-                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <div class="flex items-baseline">
-                                        <span class="text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight" id="gauge-score-text">20</span>
-                                        <span class="text-xs font-bold text-slate-400 font-mono">/100</span>
-                                    </div>
-                                    <span class="text-[9px] font-bold text-slate-400 tracking-widest uppercase mt-0.5">READINESS</span>
-                                </div>
-                            </div>
-
-                            <!-- Grade Pill -->
-                            <div id="posture-grade-pill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-[11px] font-bold font-mono uppercase tracking-wide">
-                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-                                <span id="posture-grade-text">GRADE D &mdash; HIGH QUANTUM EXPOSURE</span>
-                            </div>
-
-                            <p class="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed px-2" id="posture-summary-text">
-                                Vulnerable to Shor's algorithm on CRQC. <strong class="text-slate-900 dark:text-white font-semibold" id="posture-asymm-text">62% asymmetric crypto</strong> requires urgent migration.
-                            </p>
-                        </div>
-
-                        <!-- 4 Stat Metric Cards (2x2 Grid) -->
-                        <div class="grid grid-cols-2 gap-3 text-left">
-                            <!-- Card 1: Discovered -->
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs space-y-1">
-                                <div class="flex items-center justify-between text-slate-400">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider font-mono">DISCOVERED</span>
-                                    <i data-lucide="key" class="w-3.5 h-3.5 text-slate-400"></i>
-                                </div>
-                                <div class="text-2xl font-black text-slate-900 dark:text-white font-mono" id="stat-discovered">8</div>
-                                <div class="text-[10px] text-slate-500 font-medium">Crypto Assets</div>
-                            </div>
-
-                            <!-- Card 2: Critical Action -->
-                            <div class="bg-white dark:bg-slate-900 border border-red-100 dark:border-red-950 rounded-xl p-3 shadow-2xs space-y-1 bg-red-50/20">
-                                <div class="flex items-center justify-between text-red-500">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider font-mono">CRITICAL ACTION</span>
-                                    <i data-lucide="target" class="w-3.5 h-3.5 text-red-500"></i>
-                                </div>
-                                <div class="text-2xl font-black text-red-600 dark:text-red-400 font-mono" id="stat-critical">5</div>
-                                <div class="text-[10px] text-red-600/80 dark:text-red-400 font-medium">Need Migration</div>
-                            </div>
-
-                            <!-- Card 3: Urgency -->
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs space-y-1">
-                                <div class="flex items-center justify-between text-blue-500">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider font-mono">URGENCY</span>
-                                    <i data-lucide="timer" class="w-3.5 h-3.5 text-blue-500"></i>
-                                </div>
-                                <div class="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono" id="stat-urgency">2</div>
-                                <div class="text-[10px] text-slate-500 font-mono" id="stat-sla">&bull; SLA: 14 days</div>
-                            </div>
-
-                            <!-- Card 4: Safe State -->
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-2xs space-y-1">
-                                <div class="flex items-center justify-between text-emerald-500">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider font-mono">SAFE STATE</span>
-                                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-                                </div>
-                                <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="stat-safe">3</div>
-                                <div class="text-[10px] text-slate-500 font-mono">FIPS 203/204 valid</div>
-                            </div>
-                        </div>
-
-                        <!-- Card: Harvest Now, Decrypt Later (HNDL) Threat -->
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs border-l-4 border-l-red-500 space-y-2 text-left">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-md bg-red-100 dark:bg-red-950 flex items-center justify-center text-red-600 dark:text-red-400">
-                                        <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-900 dark:text-white">Harvest Now, Decrypt Later (HNDL)</span>
-                                </div>
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">ACTIVE RISK</span>
-                            </div>
-                            <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed" id="hndl-description">
-                                Encrypted traffic intercepted today has an estimated 10-year exposure window against cryptanalytically relevant quantum computers (CRQC).
-                            </p>
-                            <div class="pt-1 flex items-center gap-1.5 text-[10px] text-indigo-600 dark:text-indigo-400 font-mono font-medium">
-                                <i data-lucide="box" class="w-3 h-3"></i>
-                                <span id="hndl-target-text">Exposure Target: High-Value Financial Auth Tokens</span>
-                            </div>
-                        </div>
-
-                        <!-- Card: Why Migrate Now? (Mosca's Theorem Timeline) -->
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3 text-left">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-1.5">
-                                    <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i>
-                                    <span class="text-xs font-bold text-slate-900 dark:text-white">Why Migrate Now?</span>
-                                </div>
-                                <span class="text-[9px] font-mono text-slate-400 uppercase font-bold tracking-wider">MOSCA'S THEOREM</span>
-                            </div>
-
-                            <div class="p-2 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-200 dark:border-red-900/40 text-[10px] text-red-700 dark:text-red-300 font-semibold flex items-center gap-1.5">
-                                <i data-lucide="alert-circle" class="w-3.5 h-3.5 shrink-0"></i>
-                                <span>10-YEAR EXPOSURE WINDOW &mdash; FORWARD SECRECY BROKEN</span>
-                            </div>
-
-                            <!-- Interactive Horizontal Timeline -->
-                            <div class="pt-2 px-1 space-y-2">
-                                <div class="relative flex items-center justify-between">
-                                    <div class="absolute left-0 right-0 h-1 bg-slate-200 dark:bg-slate-700 -z-0"></div>
-                                    <!-- Node 1 -->
-                                    <div class="relative z-10 flex flex-col items-center">
-                                        <div class="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] shadow-sm ring-4 ring-white dark:ring-slate-900">
-                                            <i data-lucide="target" class="w-3 h-3"></i>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-red-600 mt-1">Today</span>
-                                        <span class="text-[8px] text-slate-400 text-center leading-tight">Data Intercept<br/>Exfiltration</span>
-                                    </div>
-                                    <!-- Node 2 -->
-                                    <div class="relative z-10 flex flex-col items-center">
-                                        <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] shadow-sm ring-4 ring-white dark:ring-slate-900">
-                                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-blue-600 mt-1">+5 Yrs</span>
-                                        <span class="text-[8px] text-slate-400 text-center leading-tight">Target PQC<br/>Migration End</span>
-                                    </div>
-                                    <!-- Node 3 -->
-                                    <div class="relative z-10 flex flex-col items-center">
-                                        <div class="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] shadow-sm ring-4 ring-white dark:ring-slate-900">
-                                            <i data-lucide="zap" class="w-3 h-3"></i>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-red-600 mt-1">+10 Yrs</span>
-                                        <span class="text-[8px] text-slate-400 text-center leading-tight">Quantum CRQC<br/>Shor Factor</span>
-                                    </div>
-                                    <!-- Node 4 -->
-                                    <div class="relative z-10 flex flex-col items-center">
-                                        <div class="w-6 h-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-[10px] shadow-sm ring-4 ring-white dark:ring-slate-900">
-                                            <i data-lucide="hourglass" class="w-3 h-3"></i>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-slate-500 mt-1">+15 Yrs</span>
-                                        <span class="text-[8px] text-slate-400 text-center leading-tight">Data Expires<br/>Safe EOL</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- TAB 2: FIXES (MATCHING FIGMA SCREEN 2) -->
-                    <div id="tab-fixes" class="hidden space-y-4 tab-content">
-                        
-                        <!-- Header: What to Fix First -->
-                        <div class="flex items-center justify-between pt-1">
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">What to Fix First</h3>
-                                <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 text-[10px] font-bold" id="fixes-count-pill">3 Actionable Tasks</span>
-                            </div>
-                            <div class="flex items-center gap-1 text-[10px] font-mono text-slate-400 uppercase font-semibold">
-                                <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
-                                <span>SEVERITY</span>
-                            </div>
-                        </div>
-
-                        <!-- Fixes Container (Populated dynamically) -->
-                        <div class="space-y-3" id="fixes-cards-list">
-                            <!-- Populated by JS -->
-                        </div>
-
-                    </div>
-
-                    <!-- TAB 3: REPOSITORIES -->
-                    <div id="tab-repos" class="hidden space-y-4 tab-content text-left">
-                        <div class="flex items-center justify-between pt-1">
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Active Repositories</h3>
-                            <button onclick="openCustomScanModal()" class="text-xs text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1">
-                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Scan Repo
-                            </button>
-                        </div>
-
-                        <div class="space-y-3">
-                            <div onclick="switchRepository('finpay-auth')" class="p-3.5 rounded-xl border bg-white dark:bg-slate-900 cursor-pointer transition-all border-indigo-500 ring-2 ring-indigo-400/20" id="repo-card-finpay">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">finpay-auth</span>
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">GRADE D</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500 mt-1">Core financial authentication service handling OAuth2 tokens &amp; sessions.</p>
-                                <div class="flex items-center justify-between text-[10px] font-mono mt-2 text-slate-400">
-                                    <span>8 assets &bull; 5 critical</span>
-                                    <span class="text-indigo-600 font-bold">ACTIVE</span>
-                                </div>
-                            </div>
-
-                            <div onclick="switchRepository('secure-comms')" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer transition-all hover:border-slate-300" id="repo-card-secure">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">secure-comms</span>
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">GRADE C</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500 mt-1">Tactical defense IPsec/VPN mesh tunnel service with legacy RSA handshake.</p>
-                                <div class="flex items-center justify-between text-[10px] font-mono mt-2 text-slate-400">
-                                    <span>12 assets &bull; 7 critical</span>
-                                    <span>Select &rarr;</span>
-                                </div>
-                            </div>
-
-                            <div onclick="switchRepository('pqc-reference')" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer transition-all hover:border-slate-300" id="repo-card-pqc">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-xs text-slate-900 dark:text-white font-mono">pqc-reference</span>
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">GRADE A</span>
-                                </div>
-                                <p class="text-[11px] text-slate-500 mt-1">Fully migrated reference service using ML-KEM-768 and ML-DSA-65.</p>
-                                <div class="flex items-center justify-between text-[10px] font-mono mt-2 text-slate-400">
-                                    <span>6 assets &bull; 0 vulnerable</span>
-                                    <span>Select &rarr;</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 4: REPORTS & CBOM -->
-                    <div id="tab-reports" class="hidden space-y-4 tab-content text-left">
-                        <div class="pt-1">
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Audit &amp; Compliance</h3>
-                            <p class="text-xs text-slate-500 mt-0.5">Export standards-compliant artifacts for security review.</p>
-                        </div>
-
-                        <div class="space-y-3">
-                            <!-- CBOM Card -->
-                            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="file-code" class="w-5 h-5 text-indigo-500"></i>
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-900 dark:text-white">CycloneDX CBOM Specification</div>
-                                        <div class="text-[10px] text-slate-500">Industry-standard Cryptographic Bill of Materials</div>
-                                    </div>
-                                </div>
-                                <button onclick="exportCbomJson()" class="w-full py-2 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5">
-                                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CBOM (JSON)
-                                </button>
-                            </div>
-
-                            <!-- PDF Report Card -->
-                            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="file-text" class="w-5 h-5 text-red-500"></i>
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-900 dark:text-white">Executive Compliance Memo</div>
-                                        <div class="text-[10px] text-slate-500">NIST FIPS 203/204 Posture &amp; SLA Mappings</div>
-                                    </div>
-                                </div>
-                                <button onclick="exportAuditPdf()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5">
-                                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Phone Bottom Navigation Bar (Matching Figma) -->
-                <div class="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-2.5 flex items-center justify-between text-xs select-none">
-                    <button onclick="switchMobileTab('posture')" id="nav-btn-posture" class="flex flex-col items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold transition-colors">
-                        <i data-lucide="shield" class="w-4 h-4"></i>
-                        <span class="text-[10px]">Posture</span>
-                    </button>
-                    <button onclick="switchMobileTab('fixes')" id="nav-btn-fixes" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium transition-colors relative">
-                        <div class="relative">
-                            <i data-lucide="zap" class="w-4 h-4"></i>
-                            <span id="nav-fixes-badge" class="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">3</span>
-                        </div>
-                        <span class="text-[10px]">Fixes</span>
-                    </button>
-                    <button onclick="switchMobileTab('repos')" id="nav-btn-repos" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium transition-colors">
-                        <i data-lucide="folder" class="w-4 h-4"></i>
-                        <span class="text-[10px]">Repos</span>
-                    </button>
-                    <button onclick="switchMobileTab('reports')" id="nav-btn-reports" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium transition-colors">
-                        <i data-lucide="file-text" class="w-4 h-4"></i>
-                        <span class="text-[10px]">Reports</span>
-                    </button>
-                </div>
-
-                <!-- Phone Home Indicator Bar -->
-                <div class="bg-white dark:bg-slate-900 pb-2 pt-1 flex justify-center">
-                    <div class="w-32 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 2. DESKTOP ENTERPRISE VIEW                                    -->
-        <!-- ============================================================ -->
-        <div id="desktop-view-container" class="hidden max-w-7xl mx-auto space-y-6">
+        <!-- ===================================================================== -->
+        <!-- VIEW 1: SCAN                                                          -->
+        <!-- ===================================================================== -->
+        <div id="view-scan" class="view-panel min-h-screen p-6 lg:p-8 flex flex-col justify-center">
             
-            <!-- Hero Banner -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-wrap items-center justify-between gap-6">
-                <div class="space-y-2 max-w-2xl">
-                    <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold font-mono">
-                        <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-                        <span>NIST FIPS 203 / 204 Post-Quantum Migration Framework</span>
+            <div class="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+                
+                <!-- Left Space Hero Card (Matching Video Exactly) -->
+                <div class="lg:col-span-5 hero-space-bg p-8 flex flex-col justify-between relative text-white border-b lg:border-b-0 lg:border-r border-slate-800">
+                    <div class="space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-medium font-mono">
+                            <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+                            Quantum Threat Clock Active
+                        </div>
+                        <h2 class="text-2xl lg:text-3xl font-bold tracking-tight leading-snug">
+                            "The safe that looks secure today won't survive tomorrow."
+                        </h2>
                     </div>
-                    <h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                        Enterprise Cryptographic Posture &amp; Remediation
-                    </h2>
-                    <p class="text-sm text-slate-600 dark:text-slate-300">
-                        Continuous AST-level discovery, Mosca's Theorem timeline modeling, and automated drop-in PQC code synthesis.
+
+                    <!-- 3 Metric Pillars -->
+                    <div class="space-y-4 pt-8 border-t border-slate-800/80 mt-8">
+                        <div class="bg-slate-950/60 backdrop-blur-md p-3.5 rounded-xl border border-slate-800/60">
+                            <div class="text-2xl font-black font-mono text-indigo-400">2031</div>
+                            <div class="text-xs text-slate-300 font-medium">Est. CRQC arrival (optimistic)</div>
+                        </div>
+                        <div class="bg-slate-950/60 backdrop-blur-md p-3.5 rounded-xl border border-slate-800/60">
+                            <div class="text-xl font-bold font-mono text-red-400">HNDL</div>
+                            <div class="text-xs text-slate-300 font-medium">Harvest Now, Decrypt Later — Active Threat</div>
+                        </div>
+                        <div class="bg-slate-950/60 backdrop-blur-md p-3.5 rounded-xl border border-slate-800/60">
+                            <div class="text-xl font-bold font-mono text-emerald-400">FIPS 203</div>
+                            <div class="text-xs text-slate-300 font-medium">NIST-mandated PQC standard (ML-KEM)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Scanner Form & Targets -->
+                <div class="lg:col-span-7 p-6 lg:p-8 flex flex-col justify-between">
+                    <div>
+                        <!-- Header -->
+                        <div class="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
+                            Cryptographic Asset Scanner
+                        </div>
+                        <h1 class="text-2xl lg:text-3xl font-black text-white mt-1">
+                            Start a scan
+                        </h1>
+                        <p class="text-sm text-slate-400 mt-1.5">
+                            Select a target repository or paste source code to detect classical algorithms and generate a migration plan.
+                        </p>
+
+                        <!-- Demo Repositories Tabs -->
+                        <div class="mt-6 space-y-2">
+                            <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Target Repository</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5" id="repo-cards-container">
+                                <!-- Repo 1 -->
+                                <button onclick="selectScanRepo('fintech')" id="scan-repo-fintech" class="scan-repo-card active p-3 rounded-xl border-2 border-indigo-600 bg-indigo-950/30 text-left transition-all">
+                                    <div class="font-bold text-xs text-white">FinTech API Gateway</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5 font-mono">Node.js • Payment</div>
+                                </button>
+                                <!-- Repo 2 -->
+                                <button onclick="selectScanRepo('health')" id="scan-repo-health" class="scan-repo-card p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 text-left transition-all">
+                                    <div class="font-bold text-xs text-white">Healthcare Records API</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5 font-mono">Java • EHR store</div>
+                                </button>
+                                <!-- Repo 3 -->
+                                <button onclick="selectScanRepo('gov')" id="scan-repo-gov" class="scan-repo-card p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 text-left transition-all">
+                                    <div class="font-bold text-xs text-white">Gov Identity Service</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5 font-mono">Python • PKI Auth</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Code Editor Area -->
+                        <div class="mt-5">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Source Code</span>
+                                <span class="text-[10px] font-mono text-slate-500" id="code-lang-label">JavaScript (Node.js)</span>
+                            </div>
+                            <textarea id="scan-source-code" rows="7" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 font-mono text-xs text-slate-300 focus:outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Footer Action -->
+                    <div class="mt-6 pt-5 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <button onclick="startScanningSequence()" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all transform active:scale-95">
+                            <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                            <span>Run Scan</span>
+                        </button>
+
+                        <!-- Standard Badges -->
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
+                            <span class="px-2 py-1 rounded bg-slate-800/80 border border-slate-700/60">NIST FIPS 203/204</span>
+                            <span class="px-2 py-1 rounded bg-slate-800/80 border border-slate-700/60">CycloneDX CBOM</span>
+                            <span class="px-2 py-1 rounded bg-slate-800/80 border border-slate-700/60">Mosca's Theorem</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- SCANNING HUD MODAL / OVERLAY                                          -->
+        <!-- ===================================================================== -->
+        <div id="scan-hud-overlay" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 shadow-2xl space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-3 h-3 rounded-full bg-indigo-500 animate-ping"></div>
+                        <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">Live Cryptographic Scan HUD</span>
+                    </div>
+                    <span id="scan-pct-badge" class="text-xs font-mono font-bold text-indigo-400">0%</span>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                    <div id="scan-progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full w-0 transition-all duration-300 ease-out"></div>
+                </div>
+
+                <!-- 10 Step Checklist -->
+                <div class="space-y-2 max-h-72 overflow-y-auto pr-1 text-xs font-mono" id="scan-checklist-container">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex justify-end">
+                    <button onclick="skipScanToResults()" class="text-xs text-slate-400 hover:text-white font-mono flex items-center gap-1">
+                        <span>Skip directly to Executive View</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- VIEW 2: EXECUTIVE                                                     -->
+        <!-- ===================================================================== -->
+        <div id="view-executive" class="view-panel hidden min-h-screen p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+            
+            <!-- Breadcrumb -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold" id="exec-breadcrumb">
+                        EXECUTIVE VIEW • FINTECH API GATEWAY
+                    </div>
+                    <h1 class="text-2xl font-black text-white mt-1">Post-Quantum Posture Overview</h1>
+                </div>
+                <button onclick="switchView('scan')" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-300 flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Re-scan Target</span>
+                </button>
+            </div>
+
+            <!-- Top Split: Score Box & Quantum Exposure Box -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                <!-- Left: Big Red Readiness Score Box -->
+                <div class="md:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">NIST PQC Readiness</span>
+                    
+                    <div class="my-4 flex items-baseline gap-1">
+                        <span class="text-6xl font-black font-mono text-red-500" id="exec-readiness-score">20</span>
+                        <span class="text-lg text-slate-500 font-mono">/ 100</span>
+                    </div>
+
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-extrabold tracking-wide uppercase">
+                        <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                        <span id="exec-score-badge">CRITICAL</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-4 max-w-xs">
+                        Multiple classical public-key algorithms exposed to Shor's algorithm prior to CRQC horizon.
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <button onclick="openCustomScanModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-sm">
-                        <i data-lucide="scan-line" class="w-4 h-4 text-indigo-400"></i>
-                        <span>Scan New Repository</span>
+                <!-- Right: Quantum Exposure & 4 Metric Cards -->
+                <div class="md:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+                    <div>
+                        <div class="flex items-center gap-2 text-red-400 font-bold text-base">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            <span>High Quantum Exposure Detected</span>
+                        </div>
+                        <p class="text-xs text-slate-300 mt-2 leading-relaxed" id="exec-exposure-desc">
+                            4 assets critically vulnerable within 7 years. Recommendation: begin migration within 6 months to beat Mosca's Theorem deadline.
+                        </p>
+                    </div>
+
+                    <!-- 4 Summary Metrics -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-800">
+                        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                            <div class="text-2xl font-bold font-mono text-white" id="stat-total-assets">10</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">Total Assets</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                            <div class="text-2xl font-bold font-mono text-red-500" id="stat-critical-assets">4</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">Critical</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                            <div class="text-2xl font-bold font-mono text-amber-400" id="stat-high-assets">3</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">High Risk</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                            <div class="text-2xl font-bold font-mono text-emerald-400" id="stat-pqc-ready-assets">2</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">PQC-Ready</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Top 3 Risks Section -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-white">Top 3 Risks to Address</h2>
+                    <span class="text-xs text-slate-400 font-mono">Ranked by Mosca Urgency Metric</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="top-risks-container">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex justify-end">
+                    <button onclick="switchView('risk')" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 transition-all">
+                        <span>View Full Migration Plan in Risk Manager</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Two-Column Desktop Dashboard -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- VIEW 3: RISK MANAGER                                                  -->
+        <!-- ===================================================================== -->
+        <div id="view-risk" class="view-panel hidden min-h-screen p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+            
+            <!-- Breadcrumb -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold" id="risk-breadcrumb">
+                        RISK & MIGRATION MANAGER • FINTECH API GATEWAY
+                    </div>
+                    <h1 class="text-2xl font-black text-white mt-1">Migration Priorities & Tracking</h1>
+                </div>
+                <button onclick="exportCBOMJson()" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-mono text-indigo-400 flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Export CycloneDX CBOM</span>
+                </button>
+            </div>
+
+            <!-- Progress Bar Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-3">
+                <div class="flex items-center justify-between text-xs font-semibold">
+                    <div class="text-white flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Migration Progress: <span id="migrated-count-label" class="text-indigo-400 font-mono">2</span> / <span id="total-count-label" class="font-mono">10</span> assets migrated</span>
+                    </div>
+                    <span id="migrated-pct-label" class="font-mono text-emerald-400 font-bold">20% complete</span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
+                    <div id="migration-progress-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full w-[20%] transition-all duration-500 ease-out"></div>
+                </div>
+            </div>
+
+            <!-- Interactive Risk Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950/80 border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                                <th class="py-3.5 px-4 font-semibold">Asset</th>
+                                <th class="py-3.5 px-4 font-semibold">Risk</th>
+                                <th class="py-3.5 px-4 font-semibold">Mosca Urgency</th>
+                                <th class="py-3.5 px-4 font-semibold">Status</th>
+                                <th class="py-3.5 px-4 font-semibold text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="risk-table-body" class="divide-y divide-slate-800/60 text-xs font-sans">
+                            <!-- Populated dynamically with interactive status selectors -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- VIEW 4: ANALYST                                                       -->
+        <!-- ===================================================================== -->
+        <div id="view-analyst" class="view-panel hidden min-h-screen p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+            
+            <!-- Breadcrumb -->
+            <div>
+                <div class="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold" id="analyst-breadcrumb">
+                    SECURITY ANALYST • FINTECH API GATEWAY
+                </div>
+                <h1 class="text-2xl font-black text-white mt-1">Asset Inventory & Code Remediation</h1>
+                <p class="text-xs text-slate-400 mt-1">10 cryptographic primitives inspected & analyzed under NIST PQC standards.</p>
+            </div>
+
+            <!-- Master-Detail 2 Column Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                <!-- Left Column: Posture & Metrics -->
-                <div class="lg:col-span-5 space-y-6">
-                    <!-- Posture Card -->
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs text-center space-y-4">
-                        <div class="flex items-center justify-between text-xs font-mono">
-                            <span class="flex items-center gap-1.5 text-red-600 font-bold uppercase">
-                                <span class="w-2 h-2 rounded-full bg-red-500 pulse-dot"></span>
-                                <span>POST-QUANTUM POSTURE</span>
-                            </span>
-                            <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold font-mono">CRQC v4.2</span>
-                        </div>
-
-                        <!-- Big Circular Gauge -->
-                        <div class="relative w-52 h-52 mx-auto flex items-center justify-center">
-                            <svg class="w-full h-full" viewBox="0 0 160 160">
-                                <circle class="gauge-circle-bg" cx="80" cy="80" r="62" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="290 390" />
-                                <circle id="desktop-gauge-progress-circle" class="gauge-circle-fill" cx="80" cy="80" r="62" stroke="#ef4444" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="290 390" stroke-dashoffset="232" />
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <div class="flex items-baseline">
-                                    <span class="text-4xl font-black text-slate-900 dark:text-white font-mono" id="desktop-gauge-score-text">20</span>
-                                    <span class="text-sm font-bold text-slate-400 font-mono">/100</span>
-                                </div>
-                                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-0.5">READINESS</span>
-                            </div>
-                        </div>
-
-                        <div id="desktop-posture-grade-pill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-xs font-bold font-mono uppercase">
-                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                            <span id="desktop-posture-grade-text">GRADE D &mdash; HIGH QUANTUM EXPOSURE</span>
-                        </div>
-
-                        <p class="text-xs text-slate-600 dark:text-slate-300 font-normal px-4" id="desktop-posture-summary">
-                            Vulnerable to Shor's algorithm on CRQC. 62% asymmetric crypto requires urgent migration.
-                        </p>
-                    </div>
-
-                    <!-- 4 Metric Cards -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-                            <span class="text-[11px] font-mono text-slate-400 uppercase font-bold">DISCOVERED</span>
-                            <div class="text-3xl font-black text-slate-900 dark:text-white font-mono mt-1" id="desktop-stat-discovered">8</div>
-                            <span class="text-xs text-slate-500">Crypto Assets</span>
-                        </div>
-                        <div class="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900 rounded-xl p-4 shadow-xs bg-red-50/20">
-                            <span class="text-[11px] font-mono text-red-500 uppercase font-bold">CRITICAL ACTION</span>
-                            <div class="text-3xl font-black text-red-600 dark:text-red-400 font-mono mt-1" id="desktop-stat-critical">5</div>
-                            <span class="text-xs text-red-600 dark:text-red-400 font-medium">Need Migration</span>
-                        </div>
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-                            <span class="text-[11px] font-mono text-blue-500 uppercase font-bold">URGENCY</span>
-                            <div class="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono mt-1" id="desktop-stat-urgency">2</div>
-                            <span class="text-xs text-slate-500 font-mono" id="desktop-stat-sla">&bull; SLA: 14 days</span>
-                        </div>
-                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-                            <span class="text-[11px] font-mono text-emerald-500 uppercase font-bold">SAFE STATE</span>
-                            <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1" id="desktop-stat-safe">3</div>
-                            <span class="text-xs text-slate-500 font-mono">FIPS 203/204 valid</span>
-                        </div>
-                    </div>
-
-                    <!-- Threat Exposure Card -->
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs border-l-4 border-l-red-500 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-900 dark:text-white">Harvest Now, Decrypt Later (HNDL)</span>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">ACTIVE RISK</span>
-                        </div>
-                        <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed" id="desktop-hndl-text">
-                            Encrypted traffic intercepted today has an estimated 10-year exposure window against cryptanalytically relevant quantum computers (CRQC).
-                        </p>
-                        <div class="pt-1 text-xs text-indigo-600 dark:text-indigo-400 font-mono font-medium flex items-center gap-1.5" id="desktop-hndl-target">
-                            <i data-lucide="box" class="w-3.5 h-3.5"></i>
-                            <span>Exposure Target: High-Value Financial Auth Tokens</span>
-                        </div>
-                    </div>
+                <!-- Left: 10 Assets List (Scrollable) -->
+                <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg space-y-1.5 max-h-[720px] overflow-y-auto" id="analyst-assets-list">
+                    <!-- Populated dynamically -->
                 </div>
 
-                <!-- Right Column: Remediation Actions & Mosca Model -->
-                <div class="lg:col-span-7 space-y-6">
+                <!-- Right: Asset Inspector Pane -->
+                <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-5" id="analyst-detail-pane">
                     
-                    <!-- Mosca Timeline -->
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+                    <!-- Header with Name, Badge & Meta Chips -->
+                    <div class="border-b border-slate-800 pb-4">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i>
-                                <h3 class="text-base font-bold text-slate-900 dark:text-white">Why Migrate Now? (Mosca's Theorem)</h3>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 text-xs font-bold font-mono">X + Y &gt; Z (CRITICAL)</span>
+                            <h2 class="text-xl font-black text-white font-mono" id="inspector-name">RSA-2048</h2>
+                            <span id="inspector-badge" class="px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-red-500/15 border border-red-500/30 text-red-400">CRITICAL</span>
                         </div>
-
-                        <!-- Timeline Graphic -->
-                        <div class="pt-4 pb-2 px-4">
-                            <div class="relative flex items-center justify-between">
-                                <div class="absolute left-0 right-0 h-1.5 bg-slate-200 dark:bg-slate-700 -z-0"></div>
-                                <div class="relative z-10 flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-xs shadow ring-4 ring-white dark:ring-slate-900 font-bold">1</div>
-                                    <span class="text-xs font-bold text-red-600 mt-2">Today</span>
-                                    <span class="text-[11px] text-slate-500 text-center">Data Intercept (HNDL)</span>
-                                </div>
-                                <div class="relative z-10 flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs shadow ring-4 ring-white dark:ring-slate-900 font-bold">2</div>
-                                    <span class="text-xs font-bold text-blue-600 mt-2">+5 Years</span>
-                                    <span class="text-[11px] text-slate-500 text-center">Target PQC End</span>
-                                </div>
-                                <div class="relative z-10 flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-xs shadow ring-4 ring-white dark:ring-slate-900 font-bold">3</div>
-                                    <span class="text-xs font-bold text-red-600 mt-2">+10 Years</span>
-                                    <span class="text-[11px] text-slate-500 text-center">CRQC Quantum Arrival</span>
-                                </div>
-                                <div class="relative z-10 flex flex-col items-center">
-                                    <div class="w-8 h-8 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs shadow ring-4 ring-white dark:ring-slate-900 font-bold">4</div>
-                                    <span class="text-xs font-bold text-slate-500 mt-2">+15 Years</span>
-                                    <span class="text-[11px] text-slate-500 text-center">Data Expiry (Safe EOL)</span>
-                                </div>
-                            </div>
+                        <div class="flex flex-wrap items-center gap-2 mt-2 text-[11px] font-mono text-slate-400" id="inspector-meta-chips">
+                            <span class="px-2 py-0.5 rounded bg-slate-800">Key Length: 2048-bit</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-800">Location: /src/auth/jwt.js:42</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-800">Family: Asymmetric</span>
                         </div>
                     </div>
 
-                    <!-- What to Fix First (Desktop List) -->
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                            <div>
-                                <h3 class="text-base font-bold text-slate-900 dark:text-white">What to Fix First (Actionable Tasks)</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Drop-in replacement code synthesized against NIST FIPS standards.</p>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-bold font-mono">Sorted by CVSS</span>
+                    <!-- Two Tabs: Finding Details & Remediation -->
+                    <div class="flex border-b border-slate-800 gap-6 text-xs font-semibold">
+                        <button onclick="switchInspectorTab('finding')" id="tab-btn-finding" class="pb-2.5 border-b-2 border-indigo-500 text-indigo-400 transition-all">
+                            Finding Details
+                        </button>
+                        <button onclick="switchInspectorTab('remediation')" id="tab-btn-remediation" class="pb-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5">
+                            <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+                            <span>Remediation</span>
+                        </button>
+                    </div>
+
+                    <!-- Tab 1: Finding Details Container -->
+                    <div id="inspector-tab-finding" class="space-y-4 text-xs">
+                        <div>
+                            <div class="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-500">Purpose</div>
+                            <p class="text-slate-300 mt-1 leading-relaxed" id="inspector-purpose"></p>
                         </div>
 
-                        <!-- Desktop Task Cards -->
-                        <div class="space-y-4" id="desktop-fixes-list">
-                            <!-- Populated by JS -->
+                        <div>
+                            <div class="text-[10px] uppercase font-mono font-bold tracking-wider text-red-400" id="inspector-risk-title">Why is this risky?</div>
+                            <p class="text-slate-300 mt-1 leading-relaxed" id="inspector-risk-reason"></p>
+                        </div>
+
+                        <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                            <div class="text-[10px] uppercase font-mono font-bold tracking-wider text-indigo-400">Mosca's Theorem Analysis</div>
+                            <div class="text-sm font-bold font-mono text-amber-400 mt-1" id="inspector-mosca-formula"></div>
+                            <p class="text-slate-400 mt-1 leading-relaxed" id="inspector-mosca-desc"></p>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] uppercase font-mono font-bold tracking-wider text-emerald-400">Recommended Replacement</div>
+                            <p class="text-slate-300 mt-1 font-semibold" id="inspector-replacement"></p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Code Remediation Container -->
+                    <div id="inspector-tab-remediation" class="hidden space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between text-[11px] font-mono mb-1">
+                                <span class="text-red-400 font-bold uppercase tracking-wider">Before — Vulnerable</span>
+                                <span class="text-slate-500" id="code-filepath-before">/src/auth/jwt.js</span>
+                            </div>
+                            <div class="bg-red-950/20 border border-red-900/60 rounded-xl p-3.5 font-mono text-xs text-red-200 overflow-x-auto leading-relaxed" id="remediation-before-code">
+                            </div>
+                        </div>
+
+                        <!-- Action indicator -->
+                        <div class="flex items-center justify-center py-1">
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-semibold">
+                                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                                <span>Migrate to NIST PQC Compliant Implementation</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between text-[11px] font-mono mb-1">
+                                <span class="text-emerald-400 font-bold uppercase tracking-wider">After — PQC-Ready</span>
+                                <button onclick="copyRemediatedCode()" class="text-xs text-indigo-400 hover:text-indigo-300 font-mono flex items-center gap-1">
+                                    <i data-lucide="copy" class="w-3 h-3"></i>
+                                    <span id="copy-btn-label">Copy Code</span>
+                                </button>
+                            </div>
+                            <div class="bg-emerald-950/20 border border-emerald-900/60 rounded-xl p-3.5 font-mono text-xs text-emerald-200 overflow-x-auto leading-relaxed" id="remediation-after-code">
+                            </div>
                         </div>
                     </div>
 
@@ -655,151 +527,6 @@
 
     </main>
 
-    <!-- ============================================================ -->
-    <!-- MODAL: VIEW FIX & CODE DIFF DRAWER                          -->
-    <!-- ============================================================ -->
-    <div id="fix-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden transition-all">
-            <!-- Modal Header -->
-            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2" id="modal-fix-title">
-                        Remediate RSA-2048 &rarr; ML-KEM-768
-                    </h3>
-                    <p class="text-[11px] text-slate-500 font-mono" id="modal-fix-file">auth/keys.py:18 &bull; Key Exchange</p>
-                </div>
-                <button onclick="closeFixModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <!-- Code Comparison Diff -->
-            <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs font-mono">
-                <!-- Before (Vulnerable) -->
-                <div>
-                    <div class="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
-                        <span>BEFORE (VULNERABLE LEGACY CODE)</span>
-                    </div>
-                    <pre class="p-3 rounded-lg code-diff-old overflow-x-auto text-[11px] leading-relaxed" id="modal-code-before">
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-
-# Vulnerable to Shor's Polynomial-time Prime Factorization
-key = RSA.generate(2048)
-cipher = PKCS1_OAEP.new(key)</pre>
-                </div>
-
-                <!-- After (Quantum Safe NIST Replacement) -->
-                <div>
-                    <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
-                        <span>AFTER (NIST FIPS 203 ML-KEM-768 DROP-IN)</span>
-                    </div>
-                    <pre class="p-3 rounded-lg code-diff-new overflow-x-auto text-[11px] leading-relaxed" id="modal-code-after">
-# Quantum-Resilient Module-Lattice Key Encapsulation (FIPS 203)
-from pqcrypto.kem.ml_kem_768 import generate_keypair, encrypt, decrypt
-
-public_key, secret_key = generate_keypair()
-ciphertext, shared_secret = encrypt(public_key)</pre>
-                </div>
-
-                <!-- Technical Impact Info -->
-                <div class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-sans space-y-1">
-                    <strong class="text-indigo-900 dark:text-indigo-300 font-bold block">Developer Migration Guidance:</strong>
-                    <span id="modal-fix-guidance">Install standard liboqs-python or cryptography&gt;=43.0. Replace asymmetric key generation with ML-KEM-768 module-lattice primitive. Encapsulation ciphertexts are 1088 bytes.</span>
-                </div>
-            </div>
-
-            <!-- Modal Footer Actions -->
-            <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
-                <button onclick="closeFixModal()" class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
-                    Close
-                </button>
-                <button onclick="applySimulatedFix()" id="btn-apply-fix" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                    <span>Apply Remediation (Simulate Migration)</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- MODAL: WHY RISKY? EXPLANATION MODAL                          -->
-    <!-- ============================================================ -->
-    <div id="risky-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-950 text-red-600 flex items-center justify-center">
-                        <i data-lucide="help-circle" class="w-4 h-4"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white" id="risky-modal-title">Why is RSA-2048 at Risk?</h3>
-                </div>
-                <button onclick="closeRiskyModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-            <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans" id="risky-modal-content">
-                <p>
-                    <strong>Shor's Quantum Algorithm:</strong> Classical prime factorization and discrete logarithm problems (the mathematical bedrock of RSA and ECC) can be solved in polynomial time $O((\log N)^3)$ on a Cryptanalytically Relevant Quantum Computer (CRQC).
-                </p>
-                <p>
-                    <strong>Harvest Now, Decrypt Later (HNDL):</strong> Adversaries are currently intercepting and storing encrypted high-value enterprise communications. Once a CRQC becomes operational within the next 8-10 years, all historical traffic will be retroactively decrypted.
-                </p>
-                <p>
-                    <strong>NIST FIPS 203 Recommendation:</strong> Organizations must transition immediately to lattice-based cryptography (ML-KEM), where hardness relies on the Learning With Errors (LWE) lattice problem which has no known polynomial-time quantum solution.
-                </p>
-            </div>
-            <div class="pt-2 flex justify-end">
-                <button onclick="closeRiskyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all">
-                    Understood
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- MODAL: SCAN CUSTOM REPO / CODE MODAL                         -->
-    <!-- ============================================================ -->
-    <div id="scan-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
-                        <i data-lucide="scan" class="w-4 h-4"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Scan Custom Codebase</h3>
-                </div>
-                <button onclick="closeCustomScanModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Paste Source Code (Python, Java, Go, C++):</label>
-                    <textarea id="custom-code-input" class="w-full h-36 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-mono text-xs focus:ring-2 focus:ring-indigo-500 outline-hidden leading-relaxed" placeholder="from Crypto.PublicKey import RSA&#10;key = RSA.generate(2048)&#10;..."></textarea>
-                </div>
-            </div>
-
-            <div class="pt-2 flex items-center justify-between">
-                <button onclick="loadSampleCode()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                    Load Sample Legacy Code
-                </button>
-                <div class="flex gap-2">
-                    <button onclick="closeCustomScanModal()" class="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold">
-                        Cancel
-                    </button>
-                    <button onclick="runCustomCodeScan()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                        <i data-lucide="play" class="w-3.5 h-3.5"></i> Run AST Scan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script Entrypoint -->
     <script src="/static/app.js"></script>
 </body>
 </html>

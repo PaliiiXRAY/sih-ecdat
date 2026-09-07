@@ -1,4 +1,4 @@
-/* ECDAT Figma Design System & Animations */
+/* ECDAT Professional Console Styling - Matching Video Prototype 100% */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 body {
@@ -10,82 +10,144 @@ body {
 }
 
 /* Custom Scrollbars */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-.dark ::-webkit-scrollbar-thumb { background: #334155; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-/* Phone Bezel & Shadows */
-.phone-mockup-frame {
-    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 12px #0f172a, 0 0 0 14px #334155;
+.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Light Theme Overrides for Smooth Inversion */
+.light body {
+    background-color: #f8fafc;
+    color: #0f172a;
 }
 
-/* Gauge Circular Progress Animation */
-.gauge-circle-bg {
-    stroke: #f1f5f9;
-}
-.dark .gauge-circle-bg {
-    stroke: #1e293b;
+.light aside {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
 }
 
-.gauge-circle-fill {
-    transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.5s ease;
-    transform: rotate(-135deg);
-    transform-origin: 50% 50%;
+.light aside div, .light aside nav {
+    border-color: #e2e8f0;
 }
 
-/* Smooth Tab Transitions */
-.tab-content {
-    animation: fadeInTab 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.light aside .sidebar-item {
+    color: #475569;
 }
 
-@keyframes fadeInTab {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.light aside .sidebar-item:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
 }
 
-/* Pulse Badge Animation */
+.light aside .sidebar-item.active {
+    background-color: #e0e7ff;
+    color: #4338ca;
+    border-left: 3px solid #4f46e5;
+}
+
+.light main {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.light .bg-slate-900 {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+
+.light .bg-slate-950 {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.light .bg-slate-950\/60,
+.light .bg-slate-950\/50,
+.light .bg-slate-950\/70,
+.light .bg-slate-950\/40 {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.light .bg-slate-900\/60,
+.light .bg-slate-900\/80 {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.light .bg-slate-800 {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.light .bg-slate-800\/50,
+.light .bg-slate-800\/60,
+.light .bg-slate-800\/80 {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.light .border-slate-800,
+.light .border-slate-800\/80,
+.light .border-slate-800\/60 {
+    border-color: #e2e8f0;
+}
+
+.light .divide-slate-800\/60 > * {
+    border-color: #e2e8f0;
+}
+
+.light .text-white {
+    color: #0f172a;
+}
+
+.light .text-slate-300 {
+    color: #334155;
+}
+
+.light .text-slate-400 {
+    color: #64748b;
+}
+
+.light .text-slate-500 {
+    color: #64748b;
+}
+
+.light .scan-repo-card {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.light .scan-repo-card.active {
+    background-color: #eef2ff;
+    border-color: #6366f1;
+}
+
+.light #scan-source-code {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+/* Pulse animation for scanning dot */
 @keyframes pulseDot {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(1.15); }
+    50% { opacity: 0.3; transform: scale(1.2); }
 }
 
 .pulse-dot {
-    animation: pulseDot 2s infinite ease-in-out;
+    animation: pulseDot 1.8s infinite ease-in-out;
 }
 
-/* Code Diff Blocks */
-.code-diff-old {
-    background-color: #fef2f2;
-    border-left: 3px solid #ef4444;
-    color: #991b1b;
-}
-.dark .code-diff-old {
-    background-color: #450a0a;
-    border-left: 3px solid #ef4444;
-    color: #fecaca;
+/* View transition fade */
+.view-fade {
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.code-diff-new {
-    background-color: #ecfdf5;
-    border-left: 3px solid #10b981;
-    color: #065f46;
-}
-.dark .code-diff-new {
-    background-color: #022c22;
-    border-left: 3px solid #10b981;
-    color: #a7f3d0;
-}
-
-/* Timeline Track */
-.timeline-track {
-    background: linear-gradient(to right, #ef4444 0%, #3b82f6 40%, #ef4444 75%, #94a3b8 100%);
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
