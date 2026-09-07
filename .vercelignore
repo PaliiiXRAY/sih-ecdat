@@ -1,0 +1,4 @@
+*.mp4
+*.backup.pptx
+__pycache__
+.git
