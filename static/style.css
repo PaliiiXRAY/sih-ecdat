@@ -255,6 +255,60 @@ body {
     border-color: #e2e8f0;
 }
 
+/* --- Simulator preset buttons & colored-300 text on light bg --- */
+.light .bg-red-950\/30 {
+    background-color: #fee2e2;
+    border-color: #fca5a5;
+}
+
+.light .bg-amber-950\/30 {
+    background-color: #fef3c7;
+    border-color: #fcd34d;
+}
+
+.light .bg-emerald-950\/30 {
+    background-color: #d1fae5;
+    border-color: #6ee7b7;
+}
+
+.light .text-red-300 {
+    color: #b91c1c;
+}
+
+.light .text-amber-300 {
+    color: #b45309;
+}
+
+.light .text-emerald-300 {
+    color: #047857;
+}
+
+.light .text-indigo-400 {
+    color: #4f46e5;
+}
+
+/* hero panel text stays light (guards against the 300/400 overrides above) */
+.light .hero-space-bg .text-indigo-400,
+.light .hero-space-bg .text-red-400,
+.light .hero-space-bg .text-emerald-400,
+.light .hero-space-bg .text-indigo-300,
+.light .hero-space-bg .text-red-300,
+.light .hero-space-bg .text-emerald-300 {
+    color: #f8fafc;
+}
+
+/* --- Horizon verdict card: light card regardless of tone class --- */
+.light #horizon-verdict {
+    background-color: #fff7f7;
+    border-color: #fecaca;
+}
+
+.light #horizon-verdict.text-emerald-400,
+.light #horizon-verdict.border-emerald-900\/50 {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
 
 /* Pulse animation for scanning dot */
 @keyframes pulseDot {

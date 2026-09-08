@@ -803,6 +803,8 @@ function renderRiskManagerView() {
     document.getElementById('migrated-pct-label').textContent = `${pct}% complete`;
     document.getElementById('migration-progress-bar').style.width = `${pct}%`;
 
+    renderMigrationTimeline(repo);
+
     repo.assets.forEach(asset => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-800/30 transition-colors';
@@ -856,6 +858,55 @@ function updateAssetStatus(assetId, newStatus) {
         asset.status = newStatus;
         renderRiskManagerView();
     }
+}
+
+// ============================================================================
+// MIGRATION TIMELINE (GANTT) — effort bars vs quantum deadline
+// ============================================================================
+function renderMigrationTimeline(repo) {
+    const container = document.getElementById('migration-timeline');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const startYear = 2026;
+    const endYear = 2040;
+    const span = endYear - startYear;
+
+    const rankOrder = { CRITICAL: 0, HIGH: 1, MODERATE: 2, SAFE: 3 };
+    const actionable = [...repo.assets]
+        .filter(a => computeAssetRisk(a) !== 'SAFE')
+        .sort((a, b) => rankOrder[computeAssetRisk(a)] - rankOrder[computeAssetRisk(b)]);
+
+    const barColor = { CRITICAL: '#ef4444', HIGH: '#f59e0b', MODERATE: '#6366f1' };
+
+    actionable.forEach(asset => {
+        const risk = computeAssetRisk(asset);
+        const effort = asset.y || 1;
+        const barPct = Math.max(6, (effort / span) * 100);
+        const deadlinePct = Math.min(100, ((horizonYear - startYear) / span) * 100);
+        const overdue = startYear + effort > horizonYear;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3';
+        row.innerHTML = `
+            <div class="w-36 shrink-0 text-right">
+                <div class="text-[11px] font-bold font-mono text-white truncate">${asset.name}</div>
+                <div class="text-[10px] text-slate-500 truncate">${asset.location.split('/').pop()}</div>
+            </div>
+            <div class="flex-1 relative h-6 bg-slate-950/60 rounded-lg border border-slate-800/60 overflow-visible">
+                <div class="absolute top-0 bottom-0 rounded-lg flex items-center px-2 transition-all duration-500"
+                     style="left:2%;width:${barPct}%;background:${barColor[risk]}33;border:1px solid ${barColor[risk]}66">
+                    <span class="text-[9px] font-mono font-bold" style="color:${barColor[risk]}">${effort}y effort</span>
+                </div>
+                <div class="absolute top-[-4px] bottom-[-4px] w-0.5 bg-red-500/80 rounded-full" style="left:${deadlinePct}%"></div>
+                ${overdue ? `<span class="absolute top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold text-red-400" style="left:${Math.min(deadlinePct + 2, 78)}%">overdue</span>` : ''}
+            </div>
+            <div class="w-12 shrink-0 text-[10px] font-mono font-bold ${overdue ? 'text-red-400' : 'text-emerald-400'} text-right">
+                ${horizonYear}
+            </div>
+        `;
+        container.appendChild(row);
+    });
 }
 
 // ============================================================================
@@ -1000,6 +1051,74 @@ function toggleTheme() {
         document.getElementById('theme-icon').setAttribute('data-lucide', 'moon');
     }
     if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================================
+// EXPORT EXECUTIVE PDF REPORT
+// ============================================================================
+function exportExecutivePDF() {
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) return;
+    const repo = REPOSITORIES[currentRepoKey];
+    const { counts, score, badge } = computeSimulatedStats();
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(30, 27, 75);
+    doc.rect(0, 0, 210, 34, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('ECDAT — Post-Quantum Risk Report', 14, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${repo.name}  |  Generated ${new Date().toLocaleDateString()}  |  CRQC horizon: ${horizonYear}`, 14, 24);
+
+    // Summary box
+    doc.setTextColor(30, 30, 40);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Executive Summary', 14, 46);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const readiness = score >= 80 ? 'resilient' : score >= 55 ? 'moderately prepared' : 'critically exposed';
+    doc.text([
+        `NIST PQC Readiness Score: ${score}/100 (${badge}). The application is ${readiness} against`,
+        `a quantum computer arriving by ${horizonYear}.`,
+        `${counts.CRITICAL} critical, ${counts.HIGH} high-risk and ${counts.MODERATE} moderate assets require migration.`,
+        `Assets flagged CRITICAL violate Mosca's Theorem (X + Y > Z): data with a long shelf life,`,
+        `captured today by adversaries ("Harvest Now, Decrypt Later"), will be decrypted once a`,
+        `cryptanalytically relevant quantum computer exists.`
+    ], 14, 54);
+
+    // Asset table
+    const rows = repo.assets.map(a => [
+        a.name, a.location, computeAssetRisk(a), a.replacement, a.status
+    ]);
+    doc.autoTable({
+        startY: 92,
+        head: [['Asset', 'Location', 'Risk', 'Recommended Replacement', 'Status']],
+        body: rows,
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        headStyles: { fillColor: [79, 70, 229] },
+        columnStyles: { 1: { cellWidth: 45 }, 3: { cellWidth: 55 } },
+        didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 2) {
+                if (data.cell.raw === 'CRITICAL') data.cell.styles.textColor = [220, 38, 38];
+                else if (data.cell.raw === 'HIGH') data.cell.styles.textColor = [180, 83, 9];
+                else data.cell.styles.textColor = [5, 150, 105];
+                data.cell.styles.fontStyle = 'bold';
+            }
+        }
+    });
+
+    // Footer
+    const endY = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 130);
+    doc.text('Generated by ECDAT (SIH26164) — planning assumption, not a deterministic prediction. Standards: NIST FIPS 203/204, CycloneDX CBOM.', 14, endY);
+
+    doc.save(`ecdat-executive-report-${repo.id}.pdf`);
 }
 
 // ============================================================================

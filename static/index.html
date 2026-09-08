@@ -26,6 +26,8 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
     <style>
         /* Exact layout refinements matching video */
@@ -448,6 +450,10 @@
                     </div>
                     <h1 class="text-2xl font-black text-white mt-1">Migration Priorities & Tracking</h1>
                 </div>
+                <button onclick="exportExecutivePDF()" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-mono text-indigo-400 flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    <span>Export Executive PDF</span>
+                </button>
                 <button onclick="exportCBOMJson()" class="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-mono text-indigo-400 flex items-center gap-1.5 transition-colors">
                     <i data-lucide="download" class="w-3.5 h-3.5"></i>
                     <span>Export CycloneDX CBOM</span>
@@ -465,6 +471,27 @@
                 </div>
                 <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
                     <div id="migration-progress-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full w-[20%] transition-all duration-500 ease-out"></div>
+                </div>
+            </div>
+
+            <!-- Migration Timeline (Gantt) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="gantt-chart" class="w-4.5 h-4.5 text-indigo-400"></i>
+                            Migration Timeline
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Each bar shows migration effort (Y years). The red line is the quantum deadline — bars must finish before it.</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-[10px] font-mono text-slate-400">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-red-500"></span>Critical</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>High</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-indigo-500"></span>Moderate</span>
+                    </div>
+                </div>
+                <div class="space-y-2.5" id="migration-timeline">
+                    <!-- Populated dynamically -->
                 </div>
             </div>
 
