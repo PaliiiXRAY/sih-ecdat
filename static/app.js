@@ -378,6 +378,39 @@ ec_key = ec.generate_private_key(ec.SECP256R1())`,
 });
 
 // ============================================================================
+// MOSCA SIMULATION PARAMETERS (X = data shelf-life, Y = migration time)
+// ============================================================================
+const ASSET_MOSCA = {
+    'asset-1': { x: 10, y: 3 },                        // RSA-2048 JWT
+    'asset-2': { x: 5, y: 3 },                         // ECDH P-256
+    'asset-3': { x: 15, y: 4 },                        // RSA-4096 Root CA
+    'asset-4': { x: 7, y: 2 },                         // ECDSA P-384
+    'asset-5': { x: 10, y: 2 },                        // DH-2048
+    'asset-6': { broken: true },                       // MD5 — broken classically
+    'asset-7': { safe: true },                         // AES-256-GCM
+    'asset-8': { safe: true },                         // SHA-256
+    'asset-9': { x: 5, y: 2 },                         // RSA-2048 mTLS
+    'asset-10': { brokenHigh: true }                   // PBKDF2-SHA1
+};
+
+Object.values(REPOSITORIES).forEach(repo =>
+    repo.assets.forEach(a => Object.assign(a, ASSET_MOSCA[a.id] || {}))
+);
+
+let horizonYear = 2031;
+
+function computeAssetRisk(asset) {
+    if (asset.safe) return 'SAFE';
+    if (asset.broken) return 'CRITICAL';
+    if (asset.brokenHigh) return 'HIGH';
+    const z = horizonYear - 2026;                      // planning window in years
+    const overrun = (asset.x + asset.y) - z;           // Mosca: X + Y vs Z
+    if (overrun >= 1) return 'CRITICAL';
+    if (overrun >= -2) return 'HIGH';
+    return 'MODERATE';
+}
+
+// ============================================================================
 // STATE VARIABLES
 // ============================================================================
 let currentRepoKey = 'fintech';
@@ -572,45 +605,91 @@ function skipScanToResults() {
 // ============================================================================
 // EXECUTIVE VIEW RENDER
 // ============================================================================
-function renderExecutiveView() {
+function computeSimulatedStats() {
     const repo = REPOSITORIES[currentRepoKey];
+    const counts = { CRITICAL: 0, HIGH: 0, MODERATE: 0, SAFE: 0 };
+    repo.assets.forEach(a => counts[computeAssetRisk(a)]++);
+    const score = Math.max(0, Math.min(100, 100 - counts.CRITICAL * 11 - counts.HIGH * 5 - counts.MODERATE * 2));
+    const badge = score >= 80 ? 'RESILIENT' : score >= 55 ? 'MODERATE' : score >= 30 ? 'HIGH RISK' : 'CRITICAL';
+    return { repo, counts, score, badge };
+}
+
+function renderExecutiveView() {
+    const { repo, counts, score, badge } = computeSimulatedStats();
 
     // Score & Badges
     const scoreElem = document.getElementById('exec-readiness-score');
     const badgeElem = document.getElementById('exec-score-badge');
     const descElem = document.getElementById('exec-exposure-desc');
 
-    if (scoreElem) scoreElem.textContent = repo.score;
-    if (badgeElem) badgeElem.textContent = repo.scoreBadge;
-    if (descElem) descElem.textContent = repo.exposureDesc;
+    const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 55 ? 'text-amber-400' : score >= 30 ? 'text-orange-400' : 'text-red-500';
+    const badgeTone = score >= 80
+        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+        : score >= 55
+            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+            : 'bg-red-500/15 border-red-500/30 text-red-400';
+
+    if (scoreElem) {
+        scoreElem.textContent = score;
+        scoreElem.className = `text-6xl font-black font-mono ${scoreColor}`;
+    }
+    if (badgeElem) {
+        badgeElem.textContent = badge;
+        badgeElem.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-extrabold tracking-wide uppercase ${badgeTone}`;
+    }
+    if (descElem) {
+        descElem.textContent = `${counts.CRITICAL} assets critically vulnerable before ${horizonYear} under Mosca's Theorem (X + Y > Z). ${counts.CRITICAL > 0 ? 'Recommendation: begin migration within 6 months to beat the deadline.' : 'Posture holds under this horizon — monitor annually.'}`;
+    }
+    const scoreDesc = document.getElementById('exec-score-desc');
+    if (scoreDesc) {
+        scoreDesc.textContent = counts.CRITICAL >= 5
+            ? `Severe exposure: ${counts.CRITICAL} classical public-key assets break under Shor's algorithm before the ${horizonYear} horizon.`
+            : counts.CRITICAL > 0
+                ? `${counts.CRITICAL} classical public-key assets exposed to Shor's algorithm prior to the ${horizonYear} CRQC horizon.`
+                : `No Shor-vulnerable assets exceed Mosca's inequality at the ${horizonYear} horizon.`;
+    }
 
     // Stat Cards
-    document.getElementById('stat-total-assets').textContent = repo.totalAssets;
-    document.getElementById('stat-critical-assets').textContent = repo.criticalCount;
-    document.getElementById('stat-high-assets').textContent = repo.highCount;
-    document.getElementById('stat-pqc-ready-assets').textContent = repo.pqcReadyCount;
+    document.getElementById('stat-total-assets').textContent = repo.assets.length;
+    document.getElementById('stat-critical-assets').textContent = counts.CRITICAL;
+    document.getElementById('stat-high-assets').textContent = counts.HIGH;
+    document.getElementById('stat-pqc-ready-assets').textContent = counts.SAFE;
 
-    // Top 3 Risks Cards
+    renderHorizonVerdict(counts, score);
+    renderFamilyDonut();
+
+    // Top 3 Risks Cards — highest-urgency assets under current horizon
     const container = document.getElementById('top-risks-container');
     container.innerHTML = '';
 
-    repo.topRisks.forEach(risk => {
+    const rankOrder = { CRITICAL: 0, HIGH: 1, MODERATE: 2, SAFE: 3 };
+    const topAssets = [...repo.assets]
+        .sort((a, b) => (rankOrder[computeAssetRisk(a)] - rankOrder[computeAssetRisk(b)]))
+        .slice(0, 3);
+
+    topAssets.forEach(asset => {
+        const risk = computeAssetRisk(asset);
+        const riskTone = risk === 'CRITICAL'
+            ? 'bg-red-500/15 border-red-500/30 text-red-400'
+            : risk === 'HIGH'
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
         const card = document.createElement('div');
         card.className = 'bg-slate-950/60 p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between';
         card.innerHTML = `
             <div>
                 <div class="flex items-center justify-between">
-                    <span class="font-bold text-sm text-white font-mono">${risk.name}</span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono bg-red-500/15 border border-red-500/30 text-red-400 uppercase">${risk.risk}</span>
+                    <span class="font-bold text-sm text-white font-mono">${asset.name}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono border uppercase ${riskTone}">${risk}</span>
                 </div>
-                <div class="text-[11px] font-medium text-slate-400 mt-1">${risk.category}</div>
-                <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">${risk.desc}</p>
+                <div class="text-[11px] font-medium text-slate-400 mt-1">${asset.role}</div>
+                <p class="text-xs text-slate-300 mt-2.5 leading-relaxed">${asset.riskReason}</p>
                 <div class="mt-3 pt-3 border-t border-slate-800/80 text-[11px]">
                     <span class="text-slate-500 font-mono">Target:</span>
-                    <span class="text-emerald-400 font-mono font-semibold ml-1">${risk.target}</span>
+                    <span class="text-emerald-400 font-mono font-semibold ml-1">${asset.replacement}</span>
                 </div>
             </div>
-            <button onclick="inspectSpecificAsset('${risk.assetId}')" class="mt-4 w-full py-1.5 rounded-lg border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-xs font-semibold text-indigo-400 flex items-center justify-center gap-1.5 transition-colors">
+            <button onclick="inspectSpecificAsset('${asset.id}')" class="mt-4 w-full py-1.5 rounded-lg border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-xs font-semibold text-indigo-400 flex items-center justify-center gap-1.5 transition-colors">
                 <span>Inspect in Analyst</span>
                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             </button>
@@ -619,6 +698,86 @@ function renderExecutiveView() {
     });
 
     if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================================
+// QUANTUM HORIZON SIMULATOR & FAMILY EXPOSURE DONUT
+// ============================================================================
+function renderHorizonVerdict(counts, score) {
+    const verdict = document.getElementById('horizon-verdict');
+    const label = document.getElementById('horizon-year-label');
+    if (label) label.textContent = horizonYear;
+    if (!verdict) return;
+
+    const z = horizonYear - 2026;
+    let tone, headline, body;
+    if (counts.CRITICAL >= 5) {
+        tone = 'text-red-400 border-red-900/50 bg-red-950/20';
+        headline = 'MOSCA DEADLINE EXCEEDED';
+        body = `With only ${z} years to a ${horizonYear} CRQC, ${counts.CRITICAL} assets have X + Y > Z — data captured today will be decryptable. Immediate migration board-level urgency.`;
+    } else if (counts.CRITICAL > 0) {
+        tone = 'text-amber-400 border-amber-900/50 bg-amber-950/20';
+        headline = 'DEADLINE AT RISK';
+        body = `${counts.CRITICAL} assets exceed Mosca's inequality at a ${horizonYear} horizon. Start structured migration within 12 months.`;
+    } else {
+        tone = 'text-emerald-400 border-emerald-900/50 bg-emerald-950/20';
+        headline = 'POSTURE HOLDS';
+        body = `No assets exceed X + Y > Z at a ${horizonYear} horizon. Maintain crypto-agility and re-evaluate annually.`;
+    }
+    verdict.className = `rounded-xl border p-3.5 text-xs leading-relaxed ${tone}`;
+    verdict.innerHTML = `<span class="font-mono font-bold tracking-wider">${headline}</span><p class="text-slate-300 mt-1">${body}</p>`;
+}
+
+function setHorizonPreset(year) {
+    const slider = document.getElementById('horizon-slider');
+    if (slider) slider.value = year;
+    horizonYear = year;
+    renderExecutiveView();
+}
+
+function renderFamilyDonut() {
+    const repo = REPOSITORIES[currentRepoKey];
+    const groups = [
+        { label: 'Factorization (RSA/DH)', match: f => /Factorization|Finite Field/.test(f), color: '#ef4444' },
+        { label: 'Elliptic Curve (ECC)', match: f => /Elliptic Curve/.test(f), color: '#f59e0b' },
+        { label: 'Hash / KDF', match: f => /Hash|KDF/.test(f), color: '#8b5cf6' },
+        { label: 'Symmetric', match: f => /Symmetric/.test(f), color: '#10b981' }
+    ].map(g => ({ ...g, count: repo.assets.filter(a => g.match(a.family)).length }))
+     .filter(g => g.count > 0);
+
+    const total = groups.reduce((s, g) => s + g.count, 0) || 1;
+    const R = 46, C = 60, circumference = 2 * Math.PI * R;
+    let offset = 0;
+
+    const svg = document.getElementById('family-donut-svg');
+    if (svg) {
+        svg.innerHTML = `
+            <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#1e293b" stroke-width="16"/>
+            ${groups.map(g => {
+                const frac = g.count / total;
+                const dash = frac * circumference;
+                const el = `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${g.color}" stroke-width="16"
+                    stroke-dasharray="${dash} ${circumference - dash}" stroke-dashoffset="${-offset}"
+                    transform="rotate(-90 ${C} ${C})"/>`;
+                offset += dash;
+                return el;
+            }).join('')}
+            <text x="${C}" y="${C - 2}" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="800" font-family="JetBrains Mono, monospace">${total}</text>
+            <text x="${C}" y="${C + 12}" text-anchor="middle" fill="#64748b" font-size="7" font-family="JetBrains Mono, monospace">ASSETS</text>
+        `;
+    }
+
+    const legend = document.getElementById('family-donut-legend');
+    if (legend) {
+        legend.innerHTML = groups.map(g => `
+            <div class="flex items-center justify-between gap-2">
+                <span class="flex items-center gap-2 text-slate-300">
+                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${g.color}"></span>${g.label}
+                </span>
+                <span class="font-mono font-bold text-white">${g.count}</span>
+            </div>
+        `).join('');
+    }
 }
 
 function inspectSpecificAsset(assetId) {
@@ -648,10 +807,13 @@ function renderRiskManagerView() {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-800/30 transition-colors';
 
-        // Risk badge colors
+        const simRisk = computeAssetRisk(asset);
+
+        // Risk badge colors (recomputed under current horizon)
         let riskBadgeClass = 'bg-red-500/15 border-red-500/30 text-red-400';
-        if (asset.risk === 'HIGH') riskBadgeClass = 'bg-amber-500/15 border-amber-500/30 text-amber-400';
-        if (asset.risk === 'SAFE') riskBadgeClass = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
+        if (simRisk === 'HIGH') riskBadgeClass = 'bg-amber-500/15 border-amber-500/30 text-amber-400';
+        if (simRisk === 'MODERATE') riskBadgeClass = 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300';
+        if (simRisk === 'SAFE') riskBadgeClass = 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400';
 
         // Status badge / selector styling
         row.innerHTML = `
@@ -661,7 +823,7 @@ function renderRiskManagerView() {
             </td>
             <td class="py-3.5 px-4">
                 <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono border ${riskBadgeClass}">
-                    ${asset.risk}
+                    ${simRisk}
                 </span>
             </td>
             <td class="py-3.5 px-4 font-mono text-[11px] text-slate-300">
@@ -879,9 +1041,38 @@ function exportCBOMJson() {
 }
 
 // ============================================================================
+// LIVE QUANTUM THREAT COUNTDOWN (to 2031 CRQC planning horizon)
+// ============================================================================
+const CRQC_HORIZON = new Date('2031-01-01T00:00:00Z');
+
+function startThreatCountdown() {
+    const el = document.getElementById('threat-countdown');
+    if (!el) return;
+    const tick = () => {
+        const ms = Math.max(0, CRQC_HORIZON - Date.now());
+        const d = Math.floor(ms / 86400000);
+        const h = Math.floor(ms / 3600000) % 24;
+        const m = Math.floor(ms / 60000) % 60;
+        const s = Math.floor(ms / 1000) % 60;
+        el.textContent = `${d}d ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
+    tick();
+    setInterval(tick, 1000);
+}
+
+// ============================================================================
 // INITIALIZATION ON LOAD
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
     selectScanRepo('fintech');
     switchView('scan');
+    startThreatCountdown();
+
+    const slider = document.getElementById('horizon-slider');
+    if (slider) {
+        slider.addEventListener('input', (e) => {
+            horizonYear = parseInt(e.target.value, 10);
+            renderExecutiveView();
+        });
+    }
 });

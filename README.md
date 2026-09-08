@@ -37,6 +37,9 @@ Thousands of enterprise applications rely on public-key encryption (RSA, ECC, Di
 ## 🎯 Key Features
 
 - 🏦 **1-Click Realistic Enterprise Scenarios**: Instant pre-configured evaluation for FinTech Banking (`finpay-auth`), Defense Comms (`secure-comms`), and Quantum-Resilient reference services (`pqc-reference`).
+- ⏰ **Live Quantum Threat Clock**: Real-time T-minus countdown to the 2031 CRQC planning horizon on the scan console.
+- 🎛️ **Quantum Horizon Simulator**: Interactive slider (2026–2040) that live-recomputes every asset's Mosca inequality (X + Y > Z), readiness score, urgency badges, and executive narrative — demonstrate "what if quantum arrives in 2028?" in one drag.
+- 🍩 **Family Exposure Donut**: Zero-dependency SVG breakdown of exposed algorithm families (factorization, elliptic curve, hash/KDF, symmetric).
 - 📊 **Executive Security Dashboard**: Instant 4-metric overview (Discovered Assets, Need Migration, Critical Urgency, Already Resilient) with Quantum Readiness Posture (Grade A to D).
 - ⚡ **Priority Actions ("What Should You Fix First?")**: Actionable triage ranking based on exposure and data shelf-life with direct jump-to-fix links and explainable risk modals.
 - 🔄 **IDE-Style Side-by-Side Remediation**: Direct before/after comparison between vulnerable legacy code (RSA/ECC) and standardized post-quantum cryptography (ML-KEM/ML-DSA) with 1-click clipboard copy and live *"Mark as Migrated ✓"* recalculation.
@@ -74,7 +77,7 @@ cd sih-ecdat
 python app.py
 
 # 3. Open in browser
-# Navigate to http://localhost:8080
+# Navigate to http://localhost:5001
 ```
 
 ---
