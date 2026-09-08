@@ -377,6 +377,20 @@ ec_key = ec.generate_private_key(ec.SECP256R1())`,
     REPOSITORIES[repoKey].assets = JSON.parse(JSON.stringify(REPOSITORIES.fintech.assets));
 });
 
+// Live Scan target — populated by the real Python analysis engine via /api/scan
+REPOSITORIES.live = {
+    id: 'live',
+    name: 'Live Scan (Custom Code)',
+    runtime: 'Scanned by Python engine',
+    codeLang: 'Auto-detect',
+    sampleCode: '// Paste your own code here and run a REAL scan.\n// Supports: Python, JavaScript/TypeScript, Java, Go, C/C++\n//\n// Example — try pasting code that uses RSA, ECC, AES, MD5...\nimport ssl\nssl.PROTOCOL_SSLv3\n',
+    score: 0,
+    scoreBadge: 'PENDING',
+    assets: []
+};
+
+const REPO_KEYS = ['fintech', 'health', 'gov', 'live'];
+
 // ============================================================================
 // MOSCA SIMULATION PARAMETERS (X = data shelf-life, Y = migration time)
 // ============================================================================
@@ -404,10 +418,19 @@ function computeAssetRisk(asset) {
     if (asset.broken) return 'CRITICAL';
     if (asset.brokenHigh) return 'HIGH';
     const z = horizonYear - 2026;                      // planning window in years
-    const overrun = (asset.x + asset.y) - z;           // Mosca: X + Y vs Z
+    const overrun = (asset.x + effectiveEffortY(asset)) - z;   // Mosca: X + Y vs Z
     if (overrun >= 1) return 'CRITICAL';
     if (overrun >= -2) return 'HIGH';
     return 'MODERATE';
+}
+
+// Business criticality feeds migration complexity (Y): mission-critical
+// systems take longer to migrate safely; low-impact ones can move faster.
+function effectiveEffortY(asset) {
+    const base = asset.y || 3;
+    if (asset.criticality === 'Mission-Critical') return base + 2;
+    if (asset.criticality === 'Low') return Math.max(1, base - 1);
+    return base;
 }
 
 // ============================================================================
@@ -484,11 +507,15 @@ function selectScanRepo(repoKey) {
     const repo = REPOSITORIES[repoKey];
 
     // Highlight selected card
-    ['fintech', 'health', 'gov'].forEach(k => {
+    REPO_KEYS.forEach(k => {
         const card = document.getElementById(`scan-repo-${k}`);
         if (card) {
             if (k === repoKey) {
-                card.className = 'scan-repo-card active p-3 rounded-xl border-2 border-indigo-600 bg-indigo-950/30 text-left transition-all';
+                card.className = k === 'live'
+                    ? 'scan-repo-card active p-3 rounded-xl border-2 border-emerald-600 bg-emerald-950/30 text-left transition-all'
+                    : 'scan-repo-card active p-3 rounded-xl border-2 border-indigo-600 bg-indigo-950/30 text-left transition-all';
+            } else if (k === 'live') {
+                card.className = 'scan-repo-card p-3 rounded-xl border border-emerald-800/60 bg-emerald-950/20 hover:border-emerald-700 text-left transition-all';
             } else {
                 card.className = 'scan-repo-card p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 text-left transition-all';
             }
@@ -530,11 +557,16 @@ function startScanningSequence() {
     progressBar.style.width = '0%';
     pctBadge.textContent = '0%';
 
+    const stages = [...SCAN_STAGES];
+    if (currentRepoKey === 'live') {
+        stages.unshift({ title: 'Contacting live analysis engine (Python AST + pattern scan)...', live: true });
+    }
+
     let stepIndex = 0;
-    const totalSteps = SCAN_STAGES.length;
+    const totalSteps = stages.length;
 
     // Render placeholder steps
-    SCAN_STAGES.forEach((stage, idx) => {
+    stages.forEach((stage, idx) => {
         const stepDiv = document.createElement('div');
         stepDiv.id = `scan-step-${idx}`;
         stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/60 text-slate-500';
@@ -548,7 +580,49 @@ function startScanningSequence() {
         checklistContainer.appendChild(stepDiv);
     });
 
-    function processNextStep() {
+    const markStep = (idx, state, stage) => {
+        const stepDiv = document.getElementById(`scan-step-${idx}`);
+        if (!stepDiv) return;
+        if (state === 'running') {
+            stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-indigo-950/30 border border-indigo-500/40 text-indigo-300';
+            stepDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+                    <span class="text-white">${stage.title}</span>
+                </div>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-400">running...</span>
+            `;
+        } else if (state === 'done') {
+            stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-emerald-900/40 text-slate-300';
+            stepDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>${stage.title}</span>
+                </div>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">DONE</span>
+            `;
+        } else {
+            stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-red-950/30 border border-red-900/40 text-red-300';
+            stepDiv.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5 text-red-400"></i>
+                    <span>${stage.title}</span>
+                </div>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-red-950 text-red-300 border border-red-800">FAILED</span>
+            `;
+        }
+        if (window.lucide) lucide.createIcons();
+    };
+
+    const advance = (stage) => {
+        stepIndex++;
+        const pct = Math.round((stepIndex / totalSteps) * 100);
+        progressBar.style.width = `${pct}%`;
+        pctBadge.textContent = `${pct}%`;
+        processNextStep(stage);
+    };
+
+    function processNextStep(prevStage) {
         if (stepIndex >= totalSteps) {
             setTimeout(() => {
                 overlay.classList.add('hidden');
@@ -557,39 +631,28 @@ function startScanningSequence() {
             return;
         }
 
-        const currentStage = SCAN_STAGES[stepIndex];
-        const stepDiv = document.getElementById(`scan-step-${stepIndex}`);
-        
-        if (stepDiv) {
-            stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-indigo-950/30 border border-indigo-500/40 text-indigo-300';
-            stepDiv.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
-                    <span class="text-white">${currentStage.title}</span>
-                </div>
-                <span class="text-[10px] font-mono uppercase tracking-wider text-indigo-400">running...</span>
-            `;
+        const currentStage = stages[stepIndex];
+        markStep(stepIndex, 'running', currentStage);
+
+        if (currentStage.live) {
+            // Real engine call — result determines whether we continue
+            runLiveEngineScan()
+                .then((count) => {
+                    currentStage.title = `Engine scan complete — ${count} cryptographic assets found`;
+                    markStep(stepIndex, 'done', currentStage);
+                    advance(currentStage);
+                })
+                .catch((err) => {
+                    currentStage.title = `Live scan failed: ${err.message}`;
+                    markStep(stepIndex, 'failed', currentStage);
+                    progressBar.style.width = '0%';
+                });
+            return;
         }
 
         setTimeout(() => {
-            if (stepDiv) {
-                stepDiv.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-emerald-900/40 text-slate-300';
-                stepDiv.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-                        <span>${currentStage.title}</span>
-                    </div>
-                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">DONE</span>
-                `;
-                if (window.lucide) lucide.createIcons();
-            }
-
-            stepIndex++;
-            const pct = Math.round((stepIndex / totalSteps) * 100);
-            progressBar.style.width = `${pct}%`;
-            pctBadge.textContent = `${pct}%`;
-
-            processNextStep();
+            markStep(stepIndex, 'done', currentStage);
+            advance(currentStage);
         }, currentStage.delay);
     }
 
@@ -600,6 +663,107 @@ function skipScanToResults() {
     const overlay = document.getElementById('scan-hud-overlay');
     overlay.classList.add('hidden');
     switchView('executive');
+}
+
+// ============================================================================
+// LIVE SCAN — real Python analysis engine via /api/scan
+// ============================================================================
+function detectLanguage(code) {
+    if (/def\s+\w+\s*\(|import\s+\w+$|from\s+\w+\s+import/m.test(code)) return 'python';
+    if (/require\s*\(|import\s+\{|\w+\.\w+\s*=>|console\.log/m.test(code)) return 'javascript';
+    if (/public\s+class|System\.out|KeyPairGenerator|Cipher\.getInstance/m.test(code)) return 'java';
+    if (/func\s+\w+\s*\(|package\s+main|import\s+"fmt"/m.test(code)) return 'go';
+    if (/#include\s*<|EVP_|RSA_generate|SSL_CTX_/m.test(code)) return 'c';
+    if (/(openssl|ssl_ciphers|ssl_protocols)/m.test(code)) return 'config';
+    return 'python';
+}
+
+function friendlyFamily(family) {
+    const map = {
+        RSA: 'Asymmetric (Factorization)',
+        ECC: 'Asymmetric (Elliptic Curve)',
+        DH: 'Asymmetric (Finite Field)',
+        DSA: 'Asymmetric (Digital Signature)',
+        AES: 'Symmetric Block Cipher',
+        '3DES': 'Symmetric (Legacy)',
+        DES: 'Symmetric (Legacy)',
+        HASH: 'Cryptographic Hash',
+        HMAC: 'Cryptographic Hash',
+        MD5: 'Cryptographic Hash',
+        'SHA-1': 'Cryptographic Hash',
+        SHA1: 'Cryptographic Hash',
+        TLS: 'Protocol Configuration',
+        SSL: 'Protocol Configuration',
+        KDF: 'Password KDF'
+    };
+    if (map[family]) return map[family];
+    if (/SHA|MD5|HASH/i.test(family)) return 'Cryptographic Hash';
+    if (/RSA|DH|DSA/i.test(family)) return 'Asymmetric (Factorization)';
+    if (/EC|ECC/i.test(family)) return 'Asymmetric (Elliptic Curve)';
+    if (/AES|DES|SYM/i.test(family)) return 'Symmetric Block Cipher';
+    if (/TLS|SSL/i.test(family)) return 'Protocol Configuration';
+    return 'Other';
+}
+
+function normalizeRisk(classification, algoName) {
+    const name = (algoName || '').toUpperCase();
+    if (/MD5|SHA-?1\b|DES\b|3DES|SSL|TLS 1\.[01]/.test(name)) return 'BROKEN';
+    const level = classification.risk_level;
+    if (level === 'CRITICAL' || level === 'HIGH') return 'VULNERABLE';
+    if (level === 'MEDIUM' || level === 'VARIES') return 'MODERATE';
+    return 'SAFE';
+}
+
+function buildLiveAssets(data) {
+    const recs = data.recommendations || [];
+    return (data.findings || []).map((f, i) => {
+        const cls = f.classification || {};
+        const rec = recs[i] || {};
+        const risk = normalizeRisk(cls, f.algorithm);
+        const asset = {
+            id: `live-${i}`,
+            name: f.algorithm,
+            role: `${f.algorithm_family} primitive (${f.language})`,
+            location: `${f.file}:${f.line_number}`,
+            keyLength: String(f.key_size || 'Unknown'),
+            family: friendlyFamily(f.algorithm_family),
+            risk: risk === 'SAFE' ? 'SAFE' : (risk === 'MODERATE' ? 'HIGH' : 'CRITICAL'),
+            status: 'Not Started',
+            moscaFormula: `${f.algorithm_family} → ${cls.quantum_attack || 'quantum analysis'}: ${cls.quantum_impact || 'UNKNOWN'}`,
+            moscaDesc: cls.timeline ? `${cls.explanation} ${cls.timeline}` : (cls.explanation || ''),
+            purpose: `Detected at ${f.file}:${f.line_number} — matched pattern "${(f.matched_pattern || '').slice(0, 40)}".`,
+            riskReason: cls.explanation || 'Quantum impact assessment pending classification.',
+            replacement: rec.pqc_replacement ? `${rec.pqc_replacement} (${rec.nist_standard})` : 'Manual review required',
+            beforeCode: f.line_content || '',
+            afterCode: rec.code_after || `// Migrate to: ${rec.pqc_replacement || 'PQC alternative'}\n${f.line_content || ''}`
+        };
+        if (risk === 'SAFE') asset.safe = true;
+        else if (risk === 'BROKEN') asset.broken = true;
+        else asset.x = 10, asset.y = 3;
+        return asset;
+    });
+}
+
+async function runLiveEngineScan() {
+    const code = document.getElementById('scan-source-code').value;
+    if (!code.trim()) throw new Error('Paste some code first — the engine needs input to scan.');
+    const language = detectLanguage(code);
+
+    const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language, project_name: 'Live Scan (Custom Code)' })
+    });
+    if (!res.ok) throw new Error(`Analysis engine returned HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    REPOSITORIES.live.assets = buildLiveAssets(data);
+    REPOSITORIES.live.sampleCode = code;
+    REPOSITORIES.live.codeLang = language;
+    selectedAssetId = REPOSITORIES.live.assets.length ? REPOSITORIES.live.assets[0].id : null;
+    selectScanRepo('live');
+    return REPOSITORIES.live.assets.length;
 }
 
 // ============================================================================
@@ -741,7 +905,8 @@ function renderFamilyDonut() {
         { label: 'Factorization (RSA/DH)', match: f => /Factorization|Finite Field/.test(f), color: '#ef4444' },
         { label: 'Elliptic Curve (ECC)', match: f => /Elliptic Curve/.test(f), color: '#f59e0b' },
         { label: 'Hash / KDF', match: f => /Hash|KDF/.test(f), color: '#8b5cf6' },
-        { label: 'Symmetric', match: f => /Symmetric/.test(f), color: '#10b981' }
+        { label: 'Symmetric', match: f => /Symmetric/.test(f), color: '#10b981' },
+        { label: 'Protocol / Other', match: f => /Protocol|Other/.test(f), color: '#64748b' }
     ].map(g => ({ ...g, count: repo.assets.filter(a => g.match(a.family)).length }))
      .filter(g => g.count > 0);
 
@@ -832,11 +997,19 @@ function renderRiskManagerView() {
                 ${asset.moscaFormula}
             </td>
             <td class="py-3.5 px-4">
-                <select onchange="updateAssetStatus('${asset.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-mono font-medium focus:outline-none focus:border-indigo-500 text-slate-300">
-                    <option value="Not Started" ${asset.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
-                    <option value="In Progress" ${asset.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                    <option value="Migrated" ${asset.status === 'Migrated' ? 'selected' : ''}>Migrated</option>
-                </select>
+                <div class="space-y-1.5">
+                    <select onchange="updateAssetStatus('${asset.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-mono font-medium focus:outline-none focus:border-indigo-500 text-slate-300">
+                        <option value="Not Started" ${asset.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                        <option value="In Progress" ${asset.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                        <option value="Migrated" ${asset.status === 'Migrated' ? 'selected' : ''}>Migrated</option>
+                    </select>
+                    <select onchange="updateAssetCriticality('${asset.id}', this.value)" title="Business criticality — feeds the Mosca migration-effort estimate"
+                            class="block w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-mono font-medium focus:outline-none focus:border-indigo-500 text-slate-300">
+                        <option value="Low" ${asset.criticality === 'Low' ? 'selected' : ''}>Low impact</option>
+                        <option value="Standard" ${!asset.criticality || asset.criticality === 'Standard' ? 'selected' : ''}>Standard</option>
+                        <option value="Mission-Critical" ${asset.criticality === 'Mission-Critical' ? 'selected' : ''}>Mission-Critical</option>
+                    </select>
+                </div>
             </td>
             <td class="py-3.5 px-4 text-right">
                 <button onclick="inspectSpecificAsset('${asset.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold inline-flex items-center gap-1 transition-colors">
@@ -856,6 +1029,15 @@ function updateAssetStatus(assetId, newStatus) {
     const asset = repo.assets.find(a => a.id === assetId);
     if (asset) {
         asset.status = newStatus;
+        renderRiskManagerView();
+    }
+}
+
+function updateAssetCriticality(assetId, newCriticality) {
+    const repo = REPOSITORIES[currentRepoKey];
+    const asset = repo.assets.find(a => a.id === assetId);
+    if (asset) {
+        asset.criticality = newCriticality;
         renderRiskManagerView();
     }
 }
@@ -881,7 +1063,7 @@ function renderMigrationTimeline(repo) {
 
     actionable.forEach(asset => {
         const risk = computeAssetRisk(asset);
-        const effort = asset.y || 1;
+        const effort = effectiveEffortY(asset);
         const barPct = Math.max(6, (effort / span) * 100);
         const deadlinePct = Math.min(100, ((horizonYear - startYear) / span) * 100);
         const overdue = startYear + effort > horizonYear;
@@ -914,6 +1096,8 @@ function renderMigrationTimeline(repo) {
 // ============================================================================
 function renderAnalystView() {
     const repo = REPOSITORIES[currentRepoKey];
+    const countLabel = document.getElementById('analyst-asset-count');
+    if (countLabel) countLabel.textContent = `${repo.assets.length} cryptographic primitives inspected & analyzed under NIST PQC standards.`;
     const listContainer = document.getElementById('analyst-assets-list');
     listContainer.innerHTML = '';
 
@@ -1122,39 +1306,77 @@ function exportExecutivePDF() {
 }
 
 // ============================================================================
-// EXPORT CYCLONEDX CBOM JSON
+// EXPORT CYCLONEDX 1.6 CBOM (crypto components per CycloneDX crypto spec)
 // ============================================================================
 function exportCBOMJson() {
     const repo = REPOSITORIES[currentRepoKey];
+    const { counts } = computeSimulatedStats();
+
+    const uuid = (crypto.randomUUID && crypto.randomUUID())
+        || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+
+    const components = repo.assets.map((asset, idx) => ({
+        type: 'cryptographic-asset',
+        'bom-ref': `crypto-asset-${idx + 1}`,
+        name: asset.name,
+        version: String(asset.keyLength || 'Unknown'),
+        description: asset.riskReason,
+        properties: [
+            { name: 'cdx:crypto:algorithmFamily', value: asset.family },
+            { name: 'cdx:crypto:keySize', value: String(asset.keyLength || 'Unknown') },
+            { name: 'cdx:crypto:quantumRiskLevel', value: computeAssetRisk(asset) },
+            { name: 'cdx:crypto:businessCriticality', value: asset.criticality || 'Standard' },
+            { name: 'cdx:crypto:moscaEvaluation', value: asset.safe
+                ? 'X + Y <= Z (within safe window)'
+                : `X(${asset.x || 0}) + Y(${effectiveEffortY(asset)}) vs Z(${horizonYear - 2026})` },
+            { name: 'cdx:crypto:pqcReplacement', value: asset.replacement },
+            { name: 'cdx:crypto:sourceFile', value: (asset.location || '').split(':')[0] },
+            { name: 'cdx:crypto:sourceLine', value: (asset.location || '').split(':')[1] || '0' },
+            { name: 'cdx:crypto:migrationStatus', value: asset.status },
+            { name: 'cdx:crypto:hndlVulnerable', value: String(!asset.safe) }
+        ]
+    }));
+
     const cbom = {
         bomFormat: 'CycloneDX',
         specVersion: '1.6',
-        serialNumber: `urn:uuid:${Math.random().toString(36).substring(2, 15)}`,
+        serialNumber: `urn:uuid:${uuid}`,
         version: 1,
         metadata: {
             timestamp: new Date().toISOString(),
-            tools: [{ vendor: 'ECDAT', name: 'Post-Quantum Scanner', version: '0.1.0' }],
+            tools: {
+                components: [{
+                    type: 'application',
+                    name: 'ECDAT - Enterprise Cryptographic Discovery & Analysis Tool',
+                    version: '1.0.0',
+                    description: 'SIH26164 NTRO: Quantum risk classification, Mosca assessment and PQC recommendation engine.'
+                }]
+            },
             component: {
                 type: 'application',
                 name: repo.name,
                 version: '1.0.0'
-            }
+            },
+            properties: [
+                { name: 'cdx:crypto:crqcHorizonYear', value: String(horizonYear) },
+                { name: 'cdx:crypto:readinessScore', value: String(computeSimulatedStats().score) }
+            ]
         },
-        cryptographicAssets: repo.assets.map(asset => ({
-            name: asset.name,
-            type: asset.family,
-            location: asset.location,
-            quantumVulnerability: asset.risk,
-            moscaTheoremEvaluation: asset.moscaFormula,
-            targetStandard: asset.replacement
-        }))
+        components,
+        compositions: [{
+            aggregate: 'complete',
+            assemblies: components.map(c => c['bom-ref'])
+        }]
     };
 
     const blob = new Blob([JSON.stringify(cbom, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cbom-${repo.id}-cyclonedx.json`;
+    a.download = `cbom-${repo.id}-cyclonedx-1.6.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
