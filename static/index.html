@@ -646,6 +646,15 @@
                             <div class="bg-emerald-950/20 border border-emerald-900/60 rounded-xl p-3.5 font-mono text-xs text-emerald-200 overflow-x-auto leading-relaxed" id="remediation-after-code">
                             </div>
                         </div>
+
+                        <!-- Live migration tracking -->
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-[10px] font-mono text-slate-500" id="remediation-status-label">Status: Not Started</span>
+                            <button onclick="markSelectedMigrated()" id="mark-migrated-btn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all transform active:scale-95 shadow-lg shadow-emerald-600/20">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                <span>Mark as Migrated ✓</span>
+                            </button>
+                        </div>
                     </div>
 
                 </div>

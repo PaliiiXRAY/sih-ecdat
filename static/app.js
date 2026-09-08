@@ -316,7 +316,165 @@ cipher.init(Cipher.ENCRYPT_MODE, secretKey);`,
                 assetId: 'asset-5'
             }
         ],
-        assets: [] // will mirror fintech structure with healthcare adjustments
+        assets: [
+            {
+                id: 'health-1',
+                name: 'RSA-2048',
+                role: 'HIPAA Record Encryption',
+                location: '/src/records/Encryptor.java:31',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 30, y: 3,
+                moscaFormula: 'X (30y) + Y (3y) = 33y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Patient records must be retained 30+ years under HIPAA. Data encrypted today will be decryptable during the patient\'s lifetime.',
+                purpose: 'Encrypts patient health records (EHR) at rest in the hospital data warehouse.',
+                riskReason: "Shor's algorithm factors RSA-2048 in polynomial time. With a 30-year data shelf life, every record captured today is exposed to Harvest Now, Decrypt Later.",
+                replacement: 'ML-KEM-1024 (NIST FIPS 203) for record envelope encryption',
+                beforeCode: `KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+kpg.initialize(2048);
+// wraps per-record AES data keys with RSA-OAEP`,
+                afterCode: `KEM.getInstance("ML-KEM-1024");
+// NIST FIPS 203: encapsulate per-record AES-256 data keys
+// hybrid mode: X25519 + ML-KEM-1024 during transition`
+            },
+            {
+                id: 'health-2',
+                name: 'ECDH P-256',
+                role: 'FHIR API Session Keys',
+                location: '/src/fhir/SessionManager.java:52',
+                keyLength: '256-bit',
+                family: 'Asymmetric (Elliptic Curve)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 25, y: 3,
+                moscaFormula: 'X (25y) + Y (3y) = 28y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'FHIR REST interface sessions carry clinical data retained for decades.',
+                purpose: 'Establishes ephemeral session keys for FHIR R4 clinical API traffic.',
+                riskReason: 'ECDLP is broken by Shor\'s algorithm; recorded FHIR sessions can be retroactively decrypted.',
+                replacement: 'X25519 + ML-KEM-768 hybrid key exchange',
+                beforeCode: `KeyAgreement ka = KeyAgreement.getInstance("ECDH");
+ka.init(ecPrivateKey);`,
+                afterCode: `HybridKEM kem = HybridKEM.getInstance("X25519-ML-KEM-768");
+SharedSecret ss = kem.encapsulate(peerPqcKey);`
+            },
+            {
+                id: 'health-3',
+                name: 'AES-128-CBC',
+                role: 'Legacy Ward Terminal DB',
+                location: '/src/legacy/WardDb.java:88',
+                keyLength: '128-bit',
+                family: 'Symmetric Block Cipher',
+                risk: 'HIGH',
+                status: 'Not Started',
+                x: 20, y: 2,
+                moscaFormula: 'Grover halves 128-bit keys to 64-bit effective security — INSECURE',
+                moscaDesc: 'AES-128 offers only 64-bit post-quantum security; NIST mandates AES-256 for data beyond 2030.',
+                purpose: 'Encrypts legacy ward-terminal database volumes (unmaintained Pascal-era system).',
+                riskReason: 'Grover\'s algorithm quadratically speeds brute-force; 128-bit keys fall to 64-bit effective strength. CBC mode is also malleable.',
+                replacement: 'AES-256-GCM (re-key via PQC KEM envelope)',
+                beforeCode: `Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+c.init(Cipher.ENCRYPT_MODE, aes128Key);`,
+                afterCode: `Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+c.init(Cipher.ENCRYPT_MODE, aes256Key, gcmIv);`
+            },
+            {
+                id: 'health-4',
+                name: 'DH-2048',
+                role: 'HL7 Hospital Interconnect VPN',
+                location: '/config/hl7-vpn.conf:9',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Finite Field)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 25, y: 2,
+                moscaFormula: 'X (25y) + Y (2y) = 27y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Hospital-to-hospital HL7 tunnels carry records with decades-long confidentiality requirements.',
+                purpose: 'Diffie-Hellman parameters for legacy inter-hospital HL7 message tunnels.',
+                riskReason: "Finite-field Diffie-Hellman falls to Shor's algorithm; recorded VPN traffic is decryptable retroactively.",
+                replacement: 'TLS 1.3 with ML-KEM-768 (X25519MLKEM768 group)',
+                beforeCode: `dhparam /etc/ssl/hl7-dh2048.pem;
+ssl_ciphers 'DHE-RSA-AES256-GCM-SHA384';`,
+                afterCode: `ssl_protocols TLSv1.3;
+ssl_ecdh_curve X25519MLKEM768;`
+            },
+            {
+                id: 'health-5',
+                name: 'SHA-1',
+                role: 'Legacy Image Integrity Checks',
+                location: '/src/pacs/DicomHash.java:64',
+                keyLength: '160-bit',
+                family: 'Cryptographic Hash',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                broken: true,
+                moscaFormula: 'COLLISION BROKEN (classically, since 2017)',
+                moscaDesc: 'SHA-1 collision attacks are practical; PACS image deduplication can be spoofed.',
+                purpose: 'Integrity fingerprints for DICOM radiology images in the PACS archive.',
+                riskReason: 'Chosen-prefix collisions against SHA-1 are practical; attackers can substitute medical imaging data.',
+                replacement: 'SHA3-256 (FIPS 202)',
+                beforeCode: `MessageDigest md = MessageDigest.getInstance("SHA-1");`,
+                afterCode: `MessageDigest md = MessageDigest.getInstance("SHA3-256");`
+            },
+            {
+                id: 'health-6',
+                name: 'ECDSA P-384',
+                role: 'Clinical Device Attestation',
+                location: '/src/devices/Attestation.java:19',
+                keyLength: '384-bit',
+                family: 'Asymmetric (Elliptic Curve)',
+                risk: 'HIGH',
+                status: 'Not Started',
+                x: 15, y: 2,
+                moscaFormula: 'X (15y) + Y (2y) = 17y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Infusion pump and monitor attestation signatures forgeable post-CRQC.',
+                purpose: 'Signs firmware and configuration attestations for connected clinical devices.',
+                riskReason: 'Quantum ECDLP breaks P-384; forged device attestations become possible.',
+                replacement: 'ML-DSA-87 (NIST FIPS 204)',
+                beforeCode: `Signature s = Signature.getInstance("SHA384withECDSA");`,
+                afterCode: `Signature s = Signature.getInstance("ML-DSA-87");`
+            },
+            {
+                id: 'health-7',
+                name: 'TLS 1.2 (ECDHE-RSA)',
+                role: 'Patient Portal TLS',
+                location: '/config/portal-tls.conf:3',
+                keyLength: 'RSA-2048 cert',
+                family: 'Protocol Configuration',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 20, y: 1,
+                moscaFormula: 'Cert chain RSA-2048 — Shor-broken; sessions recorded via HNDL',
+                moscaDesc: 'Patient portal sessions use classical ECDHE-RSA handshakes.',
+                purpose: 'TLS termination for the public patient portal (appointments, results).',
+                riskReason: 'Handshakes recorded today can be decrypted once a CRQC exists; portal traffic includes identity data.',
+                replacement: 'TLS 1.3 + ML-KEM-768 hybrid groups, ML-DSA certificate chain',
+                beforeCode: `ssl_protocols TLSv1.2;
+ssl_ciphers 'ECDHE-RSA-AES256-GCM-SHA384';`,
+                afterCode: `ssl_protocols TLSv1.3;
+ssl_ecdh_curve X25519MLKEM768;`
+            },
+            {
+                id: 'health-8',
+                name: 'AES-256-GCM',
+                role: 'Modern EHR Volume Encryption',
+                location: '/src/records/VolumeCrypto.java:140',
+                keyLength: '256-bit',
+                family: 'Symmetric Block Cipher',
+                risk: 'SAFE',
+                status: 'Migrated',
+                safe: true,
+                moscaFormula: '256-bit key → 128-bit post-quantum security. SAFE.',
+                moscaDesc: 'Grover only halves symmetric strength; AES-256 remains secure beyond 2050.',
+                purpose: 'Encrypts the modern EHR storage volumes and backups at rest.',
+                riskReason: 'Quantum-safe: 128-bit post-quantum security margin meets NIST guidance.',
+                replacement: 'No migration required. Retain AES-256-GCM.',
+                beforeCode: `Cipher c = Cipher.getInstance("AES/GCM/NoPadding");`,
+                afterCode: `// Already quantum-resilient — retain AES-256-GCM
+Cipher c = Cipher.getInstance("AES/GCM/NoPadding");`
+            }
+        ]
     },
 
     gov: {
@@ -368,14 +526,164 @@ ec_key = ec.generate_private_key(ec.SECP256R1())`,
                 assetId: 'asset-5'
             }
         ],
-        assets: []
+        assets: [
+            {
+                id: 'gov-1',
+                name: 'RSA-2048',
+                role: 'National ID Signing Key',
+                location: '/pki/national_id/signer.py:24',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 30, y: 3,
+                moscaFormula: 'X (30y) + Y (3y) = 33y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'National ID signatures must remain trustworthy for the document lifetime (decades). Retroactive forgery invalidates issued credentials.',
+                purpose: 'Signs national identity documents and citizen credential payloads.',
+                riskReason: "Shor's algorithm enables private-key recovery from the public modulus; issued signatures can be forged post-CRQC.",
+                replacement: 'ML-DSA-65 (NIST FIPS 204) with ML-KEM-1024 key transport',
+                beforeCode: `private_key = rsa.generate_private_key(
+    public_exponent=65537, key_size=2048)
+sig = private_key.sign(payload, padding.PKCS1v15(), hashes.SHA256())`,
+                afterCode: `private_key = oqs.KeyGen(MlDsa65)
+sig = private_key.sign(payload)  # FIPS 204`
+            },
+            {
+                id: 'gov-2',
+                name: 'ECDSA P-256',
+                role: 'Passport Biometric Token',
+                location: '/pki/passport/biometric.py:57',
+                keyLength: '256-bit',
+                family: 'Asymmetric (Elliptic Curve)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 25, y: 3,
+                moscaFormula: 'X (25y) + Y (3y) = 28y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Biometric authorization tokens embedded in passports have 10-year validity but archives persist 25+ years.',
+                purpose: 'Signs biometric template tokens bound to e-passport chips.',
+                riskReason: 'ECDLP broken by Shor\'s algorithm; archived tokens can be forged to impersonate citizens.',
+                replacement: 'Falcon-512 (FN-DSA, FIPS 206 draft) or ML-DSA-44',
+                beforeCode: `ec_key = ec.generate_private_key(ec.SECP256R1())
+sig = ec_key.sign(token, ec.ECDSA(hashes.SHA256()))`,
+                afterCode: `falcon_key = oqs.KeyGen(Falcon512)
+sig = falcon_key.sign(token)`
+            },
+            {
+                id: 'gov-3',
+                name: 'DH-2048',
+                role: 'GovCloud VPN Tunnels',
+                location: '/config/govcloud_vpn.py:12',
+                keyLength: '2048-bit',
+                family: 'Asymmetric (Finite Field)',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                x: 30, y: 2,
+                moscaFormula: 'X (30y) + Y (2y) = 32y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'Classified inter-agency traffic is a prime HNDL target; tunnel keys recorded today are retroactively breakable.',
+                purpose: 'Diffie-Hellman key agreement for inter-agency GovCloud IPsec tunnels.',
+                riskReason: "Shor's algorithm breaks finite-field DH; captured classified traffic becomes decryptable.",
+                replacement: 'ML-KEM-1024 (FIPS 203) in IKEv2 hybrid mode',
+                beforeCode: `dh = dh.generate_parameters(generator=2, key_size=2048)`,
+                afterCode: `kem = oqs.KeyEncapsulation(MlKem1024)
+ct, ss = kem.encap_secret(peer_pqc_pubkey)`
+            },
+            {
+                id: 'gov-4',
+                name: 'RSA-4096',
+                role: 'Root CA (National PKI)',
+                location: '/pki/root/ca_root.pem:1',
+                keyLength: '4096-bit',
+                family: 'Asymmetric (Factorization)',
+                risk: 'CRITICAL',
+                status: 'In Progress',
+                x: 30, y: 5,
+                moscaFormula: 'X (30y) + Y (5y) = 35y > Z (7y / 2031) — EXCEEDED',
+                moscaDesc: 'The root CA anchors every downstream certificate. Root rotation is a 5+ year program on its own.',
+                purpose: 'National PKI root of trust — signs intermediate CAs for all government services.',
+                riskReason: "RSA-4096 only raises Shor's qubit requirement marginally; the root must move to PQC before intermediates can.",
+                replacement: 'ML-DSA-87 root (FIPS 204) with hybrid RSA-4096 bridge certs',
+                beforeCode: `openssl req -x509 -newkey rsa:4096 -keyout ca-root.pem -days 7300`,
+                afterCode: `oqs-openssl req -x509 -newkey mldsa87 -keyout ca-root-pqc.pem -days 7300`
+            },
+            {
+                id: 'gov-5',
+                name: 'SHA-256',
+                role: 'Document Registry Integrity',
+                location: '/services/registry/hash_chain.py:41',
+                keyLength: '256-bit',
+                family: 'Cryptographic Hash',
+                risk: 'SAFE',
+                status: 'Migrated',
+                safe: true,
+                moscaFormula: 'Grover collision cost O(2^128) — SAFE',
+                moscaDesc: 'Registry hash chains remain quantum-resistant under Grover.',
+                purpose: 'Hash-chain integrity for the national document registry.',
+                riskReason: 'Quantum-safe: 128-bit collision resistance survives Grover.',
+                replacement: 'Retain SHA-256 (optionally SHA3-256 for new chains).',
+                beforeCode: `hashlib.sha256(record_bytes).hexdigest()`,
+                afterCode: `# Quantum-safe — retain
+hashlib.sha256(record_bytes).hexdigest()`
+            },
+            {
+                id: 'gov-6',
+                name: 'PBKDF2-SHA1',
+                role: 'Officer Portal KDF',
+                location: '/auth/officer_portal/kdf.py:33',
+                keyLength: '160-bit / 10k iter',
+                family: 'Password KDF',
+                risk: 'HIGH',
+                status: 'Not Started',
+                brokenHigh: true,
+                moscaFormula: 'SHA-1 collision + low iteration count — WEAK',
+                moscaDesc: 'Officer portal password derivation uses deprecated SHA-1 with only 10,000 iterations.',
+                purpose: 'Derives authentication keys for the internal officer portal login.',
+                riskReason: 'SHA-1 collision weakness plus low iteration count makes offline brute-force tractable.',
+                replacement: 'Argon2id (memory-hard) or HKDF-SHA3-512',
+                beforeCode: `hashlib.pbkdf2_hmac('sha1', pwd, salt, 10000)`,
+                afterCode: `argon2.PasswordHasher()  # Argon2id, memory-hard`
+            },
+            {
+                id: 'gov-7',
+                name: 'TLS 1.0/1.1 (Legacy)',
+                role: 'Legacy Agency Gateway',
+                location: '/config/legacy_gateway.conf:2',
+                keyLength: 'N/A',
+                family: 'Protocol Configuration',
+                risk: 'CRITICAL',
+                status: 'Not Started',
+                broken: true,
+                moscaFormula: 'PROTOCOL BROKEN (classically deprecated)',
+                moscaDesc: 'TLS 1.0/1.1 are deprecated classically and offer no post-quantum path.',
+                purpose: 'Legacy protocol gateway still serving two agencies with 2008-era clients.',
+                riskReason: 'Deprecated protocol with known weaknesses; no PQC upgrade path exists — must be retired.',
+                replacement: 'Retire legacy gateway; terminate on TLS 1.3 + ML-KEM-768 endpoint',
+                beforeCode: `SSLProtocol ALL -SSLv3
+# (TLSv1.0/1.1 still accepted)`,
+                afterCode: `ssl_protocols TLSv1.3;
+ssl_ecdh_curve X25519MLKEM768;`
+            },
+            {
+                id: 'gov-8',
+                name: 'AES-256-GCM',
+                role: 'Classified Storage Encryption',
+                location: '/services/vault/aes_gcm.py:77',
+                keyLength: '256-bit',
+                family: 'Symmetric Block Cipher',
+                risk: 'SAFE',
+                status: 'Migrated',
+                safe: true,
+                moscaFormula: '256-bit key → 128-bit post-quantum security. SAFE.',
+                moscaDesc: 'Storage encryption remains secure under Grover; key delivery must move to ML-KEM.',
+                purpose: 'Encrypts classified document storage volumes.',
+                riskReason: 'Quantum-safe symmetric strength; only the key-wrapping path needs PQC.',
+                replacement: 'Retain AES-256-GCM; wrap data keys with ML-KEM-1024.',
+                beforeCode: `Cipher(algorithms.AES(key256), modes.GCM(iv))`,
+                afterCode: `# Retain AES-256-GCM; ML-KEM-wrapped data keys
+Cipher(algorithms.AES(key256), modes.GCM(iv))`
+            }
+        ]
     }
 };
-
-// Mirror assets from fintech to health and gov with slight context adjustments if empty
-['health', 'gov'].forEach(repoKey => {
-    REPOSITORIES[repoKey].assets = JSON.parse(JSON.stringify(REPOSITORIES.fintech.assets));
-});
 
 // Live Scan target — populated by the real Python analysis engine via /api/scan
 REPOSITORIES.live = {
@@ -804,7 +1112,11 @@ function renderExecutiveView() {
         badgeElem.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-extrabold tracking-wide uppercase ${badgeTone}`;
     }
     if (descElem) {
-        descElem.textContent = `${counts.CRITICAL} assets critically vulnerable before ${horizonYear} under Mosca's Theorem (X + Y > Z). ${counts.CRITICAL > 0 ? 'Recommendation: begin migration within 6 months to beat the deadline.' : 'Posture holds under this horizon — monitor annually.'}`;
+        if (!repo.assets.length) {
+            descElem.textContent = 'No cryptographic assets detected in this scan. Paste code containing crypto primitives (RSA, ECC, AES, hashing...) or try a bundled scenario.';
+        } else {
+            descElem.textContent = `${counts.CRITICAL} assets critically vulnerable before ${horizonYear} under Mosca's Theorem (X + Y > Z). ${counts.CRITICAL > 0 ? 'Recommendation: begin migration within 6 months to beat the deadline.' : 'Posture holds under this horizon — monitor annually.'}`;
+        }
     }
     const scoreDesc = document.getElementById('exec-score-desc');
     if (scoreDesc) {
@@ -827,6 +1139,16 @@ function renderExecutiveView() {
     // Top 3 Risks Cards — highest-urgency assets under current horizon
     const container = document.getElementById('top-risks-container');
     container.innerHTML = '';
+
+    if (!repo.assets.length) {
+        container.innerHTML = `
+            <div class="md:col-span-3 bg-slate-950/40 border border-dashed border-slate-700 rounded-xl p-6 text-center">
+                <i data-lucide="search-x" class="w-6 h-6 text-slate-500 mx-auto"></i>
+                <p class="text-xs text-slate-400 mt-2">Nothing to rank yet — no cryptographic artefacts were found in this target.</p>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
 
     const rankOrder = { CRITICAL: 0, HIGH: 1, MODERATE: 2, SAFE: 3 };
     const topAssets = [...repo.assets]
@@ -972,6 +1294,14 @@ function renderRiskManagerView() {
 
     renderMigrationTimeline(repo);
 
+    if (!repo.assets.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="5" class="py-8 text-center text-xs text-slate-400">
+                No cryptographic assets to track. Run a scan that discovers crypto primitives first.
+            </td></tr>`;
+        return;
+    }
+
     repo.assets.forEach(asset => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-slate-800/30 transition-colors';
@@ -1061,6 +1391,31 @@ function renderMigrationTimeline(repo) {
         .filter(a => computeAssetRisk(a) !== 'SAFE')
         .sort((a, b) => rankOrder[computeAssetRisk(a)] - rankOrder[computeAssetRisk(b)]);
 
+    if (!actionable.length) {
+        container.innerHTML = `
+            <div class="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-700 rounded-xl">
+                All assets are quantum-safe — nothing to schedule. 🎉
+            </div>`;
+        return;
+    }
+
+    // Year axis aligned with the bar tracks
+    const axisTicks = [2026, 2028, 2031, 2034, 2037, 2040];
+    const axis = document.createElement('div');
+    axis.className = 'flex items-center gap-3';
+    axis.innerHTML = `
+        <div class="w-36 shrink-0"></div>
+        <div class="flex-1 relative h-5">
+            ${axisTicks.map(y => {
+                const left = ((y - startYear) / span) * 100;
+                const isDeadline = y === horizonYear;
+                return `<div class="absolute -translate-x-1/2 text-[9px] font-mono ${isDeadline ? 'text-red-400 font-bold' : 'text-slate-500'}" style="left:${left}%">${y}</div>
+                        <div class="absolute top-0 bottom-0 w-px ${isDeadline ? 'bg-red-500/50' : 'bg-slate-700/50'}" style="left:${left}%"></div>`;
+            }).join('')}
+        </div>
+        <div class="w-12 shrink-0"></div>`;
+    container.appendChild(axis);
+
     const barColor = { CRITICAL: '#ef4444', HIGH: '#f59e0b', MODERATE: '#6366f1' };
 
     actionable.forEach(asset => {
@@ -1103,6 +1458,16 @@ function renderAnalystView() {
     const listContainer = document.getElementById('analyst-assets-list');
     listContainer.innerHTML = '';
 
+    if (!repo.assets.length) {
+        listContainer.innerHTML = `
+            <div class="p-6 text-center border border-dashed border-slate-700 rounded-xl">
+                <i data-lucide="package-search" class="w-6 h-6 text-slate-500 mx-auto"></i>
+                <p class="text-xs text-slate-400 mt-2">No assets yet — run a scan first.</p>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
     repo.assets.forEach(asset => {
         const btn = document.createElement('button');
         const isActive = asset.id === selectedAssetId;
@@ -1134,7 +1499,11 @@ function renderAnalystView() {
     });
 
     // Populate Right Inspector Pane
-    const currentAsset = repo.assets.find(a => a.id === selectedAssetId) || repo.assets[0];
+    let currentAsset = repo.assets.find(a => a.id === selectedAssetId);
+    if (!currentAsset && repo.assets.length) {
+        selectedAssetId = repo.assets[0].id;   // e.g. after switching scenarios
+        currentAsset = repo.assets[0];
+    }
     if (currentAsset) {
         document.getElementById('inspector-name').textContent = currentAsset.name;
         
@@ -1177,8 +1546,32 @@ function renderAnalystView() {
         document.getElementById('code-filepath-before').textContent = currentAsset.location.split(':')[0];
         document.getElementById('remediation-before-code').textContent = currentAsset.beforeCode;
         document.getElementById('remediation-after-code').textContent = currentAsset.afterCode;
+
+        // Migration status pill + button state
+        const statusLabel = document.getElementById('remediation-status-label');
+        const migratedBtn = document.getElementById('mark-migrated-btn');
+        if (statusLabel && migratedBtn) {
+            const migrated = currentAsset.status === 'Migrated';
+            statusLabel.textContent = `Status: ${currentAsset.status}`;
+            statusLabel.className = `text-[10px] font-mono ${migrated ? 'text-emerald-400 font-bold' : 'text-slate-500'}`;
+            migratedBtn.disabled = migrated;
+            migratedBtn.className = migrated
+                ? 'px-4 py-2 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 font-bold text-xs flex items-center gap-2 cursor-default'
+                : 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all transform active:scale-95 shadow-lg shadow-emerald-600/20';
+            migratedBtn.querySelector('span').textContent = migrated ? 'Migrated ✓' : 'Mark as Migrated ✓';
+        }
     }
 
+    if (window.lucide) lucide.createIcons();
+}
+
+function markSelectedMigrated() {
+    const repo = REPOSITORIES[currentRepoKey];
+    const asset = repo.assets.find(a => a.id === selectedAssetId);
+    if (!asset || asset.status === 'Migrated') return;
+    asset.status = 'Migrated';
+    renderAnalystView();
+    switchInspectorTab('remediation');
     if (window.lucide) lucide.createIcons();
 }
 

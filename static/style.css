@@ -329,3 +329,88 @@ body {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ============================================================================
+   MOBILE / TABLET (<900px): sidebar collapses to a top bar, nav scrolls
+   horizontally, content stacks full-width.
+   ========================================================================= */
+@media (max-width: 900px) {
+    body {
+        flex-direction: column !important;
+    }
+
+    aside {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        position: relative !important;
+        top: auto !important;
+        border-right: none !important;
+        border-bottom: 1px solid #1e293b !important;
+        display: block !important;
+    }
+
+    .light aside { border-bottom: 1px solid #e2e8f0 !important; }
+
+    /* logo row stays a row */
+    aside > div:first-child > div:first-child {
+        border-bottom: 1px solid #1e293b !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .light aside > div:first-child > div:first-child { border-bottom-color: #e2e8f0 !important; }
+
+    /* nav becomes horizontal scroller */
+    aside nav {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        gap: 0.4rem !important;
+        padding: 0.6rem 0.75rem !important;
+        border-bottom: 1px solid #1e293b !important;
+    }
+    .light aside nav { border-bottom-color: #e2e8f0 !important; }
+
+    aside nav .sidebar-item {
+        white-space: nowrap !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+        border-left: none !important;
+        border-bottom: 3px solid transparent !important;
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+
+    aside nav .sidebar-item.active { border-bottom-color: #6366f1 !important; }
+    .light aside nav .sidebar-item.active { border-bottom-color: #4f46e5 !important; }
+
+    /* hide descriptive subtitles in mobile nav */
+    aside nav .sidebar-item div span:last-child { display: none !important; }
+
+    /* bottom strip: current target + theme toggle side by side */
+    aside > div:last-child {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 1rem !important;
+        padding: 0.6rem 1rem !important;
+        border-top: none !important;
+    }
+    aside > div:last-child > div:first-child { flex: 1 !important; padding: 0 !important; }
+    aside > div:last-child > div:last-child { padding-top: 0 !important; }
+
+    /* main becomes a normal scrolling document */
+    main {
+        height: auto !important;
+        min-height: 60vh !important;
+        overflow: visible !important;
+    }
+
+    .view-panel { min-height: auto !important; }
+}
+
+/* Very narrow phones: tighten paddings */
+@media (max-width: 540px) {
+    main .p-6 { padding: 1rem !important; }
+    .lg\:p-8 { padding: 1rem !important; }
+}
