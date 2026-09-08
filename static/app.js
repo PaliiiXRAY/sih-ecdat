@@ -541,6 +541,8 @@ function selectScanRepo(repoKey) {
     if (execBc) execBc.textContent = `EXECUTIVE VIEW • ${repo.name.toUpperCase()}`;
     if (riskBc) riskBc.textContent = `RISK & MIGRATION MANAGER • ${repo.name.toUpperCase()}`;
     if (analystBc) analystBc.textContent = `SECURITY ANALYST • ${repo.name.toUpperCase()}`;
+
+    try { localStorage.setItem('ecdat-repo', repoKey); } catch (e) {}
 }
 
 // ============================================================================
@@ -1215,26 +1217,39 @@ function copyRemediatedCode() {
 }
 
 // ============================================================================
-// THEME TOGGLING (DARK / LIGHT MODE)
+// THEME TOGGLING (DARK / LIGHT MODE, persisted in localStorage)
 // ============================================================================
+function syncThemeToggleUI(isDark) {
+    const label = document.getElementById('theme-label');
+    const thumb = document.getElementById('theme-toggle-thumb');
+    const btn = document.getElementById('theme-toggle-btn');
+    const icon = document.getElementById('theme-icon');
+    if (!label || !thumb || !btn) return;
+    if (isDark) {
+        label.textContent = 'Dark mode';
+        thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-5';
+        btn.className = 'w-11 h-6 bg-indigo-600 rounded-full p-1 relative transition-colors focus:outline-none';
+        if (icon) icon.setAttribute('data-lucide', 'moon');
+    } else {
+        label.textContent = 'Light mode';
+        thumb.className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-0';
+        btn.className = 'w-11 h-6 bg-slate-300 rounded-full p-1 relative transition-colors focus:outline-none';
+        if (icon) icon.setAttribute('data-lucide', 'sun');
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
 function toggleTheme() {
     const isDark = document.documentElement.classList.contains('dark');
     if (isDark) {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
-        document.getElementById('theme-label').textContent = 'Light mode';
-        document.getElementById('theme-toggle-thumb').className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-0';
-        document.getElementById('theme-toggle-btn').className = 'w-11 h-6 bg-slate-300 rounded-full p-1 relative transition-colors focus:outline-none';
-        document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
     } else {
         document.documentElement.classList.remove('light');
         document.documentElement.classList.add('dark');
-        document.getElementById('theme-label').textContent = 'Dark mode';
-        document.getElementById('theme-toggle-thumb').className = 'w-4 h-4 bg-white rounded-full transition-transform translate-x-5';
-        document.getElementById('theme-toggle-btn').className = 'w-11 h-6 bg-indigo-600 rounded-full p-1 relative transition-colors focus:outline-none';
-        document.getElementById('theme-icon').setAttribute('data-lucide', 'moon');
     }
-    if (window.lucide) lucide.createIcons();
+    try { localStorage.setItem('ecdat-theme', isDark ? 'light' : 'dark'); } catch (e) {}
+    syncThemeToggleUI(!isDark);
 }
 
 // ============================================================================
@@ -1405,7 +1420,17 @@ function startThreatCountdown() {
 // INITIALIZATION ON LOAD
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    selectScanRepo('fintech');
+    syncThemeToggleUI(document.documentElement.classList.contains('dark'));
+
+    // Restore last selected target (fall back if it was an empty Live Scan)
+    let savedRepo = null;
+    try { savedRepo = localStorage.getItem('ecdat-repo'); } catch (e) {}
+    if (savedRepo && REPO_KEYS.includes(savedRepo)
+        && !(savedRepo === 'live' && !(REPOSITORIES.live.assets || []).length)) {
+        selectScanRepo(savedRepo);
+    } else {
+        selectScanRepo('fintech');
+    }
     switchView('scan');
     startThreatCountdown();
 

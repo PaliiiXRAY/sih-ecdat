@@ -36,10 +36,16 @@ Thousands of enterprise applications rely on public-key encryption (RSA, ECC, Di
 
 ## 🎯 Key Features
 
-- 🏦 **1-Click Realistic Enterprise Scenarios**: Instant pre-configured evaluation for FinTech Banking (`finpay-auth`), Defense Comms (`secure-comms`), and Quantum-Resilient reference services (`pqc-reference`).
-- ⏰ **Live Quantum Threat Clock**: Real-time T-minus countdown to the 2031 CRQC planning horizon on the scan console.
-- 🎛️ **Quantum Horizon Simulator**: Interactive slider (2026–2040) that live-recomputes every asset's Mosca inequality (X + Y > Z), readiness score, urgency badges, and executive narrative — demonstrate "what if quantum arrives in 2028?" in one drag.
-- 🍩 **Family Exposure Donut**: Zero-dependency SVG breakdown of exposed algorithm families (factorization, elliptic curve, hash/KDF, symmetric).
+- 🏦 **1-Click Realistic Enterprise Scenarios**: Instant pre-configured evaluation for FinTech Banking (`finpay-auth`), Healthcare Records, and Gov Identity (PKI) services.
+- 🟢 **Live Scan (Real Engine)**: Paste any Python / JavaScript / Java / Go / C/C++ code and scan it with the actual Python analysis pipeline (`/api/scan`) — real findings, real locations, real remediation.
+- 📊 **Executive Dashboard**: Mosca-driven NIST PQC Readiness score (Grade F → A+), critical/high/safe asset breakdown, and top-3 risk ranking.
+- 🎛️ **Quantum Horizon Simulator**: Interactive CRQC-arrival slider (2026–2040) that live-recomputes every asset's Mosca inequality (X + Y > Z), urgency badges, and the executive narrative.
+- ⏰ **Live Quantum Threat Clock**: Real-time T-minus countdown to the 2031 CRQC planning horizon.
+- 🍩 **Family Exposure Donut**: Zero-dependency SVG breakdown of exposed algorithm families (factorization, elliptic curve, hash/KDF, symmetric, protocol).
+- 🔄 **Migration Plan + Gantt Timeline**: Priority table with per-asset business-criticality input (feeds migration-effort estimate), status tracking, and an effort-vs-deadline timeline view.
+- 🧑‍💻 **IDE-Style Code Remediation**: Before/after comparison between vulnerable legacy code and NIST PQC replacements with 1-click copy.
+- 📋 **CycloneDX 1.6 CBOM & Executive PDF Export**: Standards-compliant CBOM (crypto components with `cdx:crypto:*` properties) and a branded executive PDF report.
+- 🔍 **Honest Coverage Disclaimer**: Static analysis covers ~85% of standard-library patterns; dynamic/obfuscated crypto and binary analysis are declared Phase-2 scope.
 - 📊 **Executive Security Dashboard**: Instant 4-metric overview (Discovered Assets, Need Migration, Critical Urgency, Already Resilient) with Quantum Readiness Posture (Grade A to D).
 - ⚡ **Priority Actions ("What Should You Fix First?")**: Actionable triage ranking based on exposure and data shelf-life with direct jump-to-fix links and explainable risk modals.
 - 🔄 **IDE-Style Side-by-Side Remediation**: Direct before/after comparison between vulnerable legacy code (RSA/ECC) and standardized post-quantum cryptography (ML-KEM/ML-DSA) with 1-click clipboard copy and live *"Mark as Migrated ✓"* recalculation.
