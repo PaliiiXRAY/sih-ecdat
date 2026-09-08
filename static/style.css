@@ -18,18 +18,20 @@ body {
 .light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 .light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Light Theme Overrides for Smooth Inversion */
+/* ============================================================================
+   LIGHT THEME — designed, not inverted.
+   Principle: chrome (sidebar, cards, tables) goes light; content that reads
+   best dark (code blocks, hero panel) STAYS dark, like GitHub / Stripe docs.
+   ========================================================================= */
+
 .light body {
-    background-color: #f8fafc;
+    background-color: #f6f7fb;
     color: #0f172a;
 }
 
+/* --- Sidebar --- */
 .light aside {
     background-color: #ffffff;
-    border-color: #e2e8f0;
-}
-
-.light aside div, .light aside nav {
     border-color: #e2e8f0;
 }
 
@@ -48,25 +50,31 @@ body {
     border-left: 3px solid #4f46e5;
 }
 
+.light aside .sidebar-item.active .text-slate-500,
+.light aside .text-slate-500 {
+    color: #64748b;
+}
+
+.light aside .bg-slate-800\/50 {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+/* --- Main surface & cards --- */
 .light main {
-    background-color: #f8fafc;
+    background-color: #f6f7fb;
     color: #0f172a;
 }
 
 .light .bg-slate-900 {
     background-color: #ffffff;
     border-color: #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-}
-
-.light .bg-slate-950 {
-    background-color: #f1f5f9;
-    border-color: #e2e8f0;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06), 0 4px 16px -8px rgb(15 23 42 / 0.10);
 }
 
 .light .bg-slate-950\/60,
-.light .bg-slate-950\/50,
 .light .bg-slate-950\/70,
+.light .bg-slate-950\/50,
 .light .bg-slate-950\/40 {
     background-color: #f8fafc;
     border-color: #e2e8f0;
@@ -83,10 +91,9 @@ body {
     color: #1e293b;
 }
 
-.light .bg-slate-800\/50,
 .light .bg-slate-800\/60,
 .light .bg-slate-800\/80 {
-    background-color: #f1f5f9;
+    background-color: #eef2f7;
     border-color: #e2e8f0;
 }
 
@@ -100,6 +107,11 @@ body {
     border-color: #e2e8f0;
 }
 
+.light .hover\:bg-slate-800\/30:hover {
+    background-color: #f1f5f9;
+}
+
+/* --- Text tones --- */
 .light .text-white {
     color: #0f172a;
 }
@@ -116,21 +128,133 @@ body {
     color: #64748b;
 }
 
-.light .scan-repo-card {
+/* --- HERO PANEL: stays dark in light mode (deliberate) --- */
+.light .hero-space-bg,
+.light .hero-space-bg * {
+    color: #f8fafc;
+}
+
+.light .hero-space-bg .bg-slate-950\/60 {
+    background-color: rgba(2, 6, 23, 0.72);
+    border-color: rgba(148, 163, 184, 0.25);
+    backdrop-blur: 6px;
+}
+
+.light .hero-space-bg .border-slate-800\/80 {
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+/* --- CODE BLOCKS: stay dark in light mode (deliberate) --- */
+.light .bg-red-950\/20 {
+    background-color: #1b1114;
+    border-color: #7f1d1d;
+}
+
+.light .bg-emerald-950\/20 {
+    background-color: #0d1a14;
+    border-color: #065f46;
+}
+
+.light .text-red-200 {
+    color: #fecaca;
+}
+
+.light .text-emerald-200 {
+    color: #a7f3d0;
+}
+
+.light .bg-slate-950 {
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+/* scan source textarea keeps dark-editor look */
+.light #scan-source-code {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+/* --- Selected list items (indigo pills) --- */
+.light .bg-indigo-950\/40,
+.light .bg-indigo-950\/30 {
+    background-color: #e0e7ff;
+    border-color: #6366f1;
+}
+
+.light .text-indigo-300 {
+    color: #4338ca;
+}
+
+.light .hero-space-bg .text-indigo-300 {
+    color: #c7d2fe;
+}
+
+/* --- Table & controls --- */
+.light select {
+    background-color: #ffffff;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.light .bg-slate-950\/80 {
+    background-color: #f1f5f9;
+}
+
+/* --- Scan HUD overlay & checklist rows --- */
+.light #scan-hud-overlay {
+    background-color: rgba(15, 23, 42, 0.55);
+}
+
+.light #scan-hud-overlay .bg-slate-900 {
+    background-color: #ffffff;
+}
+
+.light #scan-hud-overlay .text-white {
+    color: #0f172a;
+}
+
+.light #scan-checklist-container .bg-slate-950\/50,
+.light #scan-checklist-container .bg-slate-950\/70 {
     background-color: #f8fafc;
     border-color: #e2e8f0;
 }
 
-.light .scan-repo-card.active {
-    background-color: #eef2ff;
-    border-color: #6366f1;
+.light #scan-checklist-container .text-slate-300,
+.light #scan-checklist-container .text-slate-500 {
+    color: #475569;
 }
 
-.light #scan-source-code {
-    background-color: #ffffff;
-    color: #0f172a;
+/* --- Simulator slider --- */
+.light #horizon-slider {
+    background-color: #e2e8f0;
     border-color: #cbd5e1;
 }
+
+/* --- Buttons --- */
+.light .border-slate-800.bg-slate-900:hover {
+    background-color: #f1f5f9;
+}
+
+/* --- Selected scan repo card --- */
+.light .scan-repo-card.active {
+    background-color: #e0e7ff;
+    border-color: #4f46e5;
+}
+
+.light .scan-repo-card.active .text-white {
+    color: #312e81;
+}
+
+.light .scan-repo-card.active .text-slate-400 {
+    color: #4f46e5;
+}
+
+.light .scan-repo-card {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+}
+
 
 /* Pulse animation for scanning dot */
 @keyframes pulseDot {
