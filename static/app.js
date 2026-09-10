@@ -766,8 +766,313 @@ const SCAN_STAGES = [
 ];
 
 // ============================================================================
-// VIEW SWITCHING LOGIC
+// VIEW SWITCHING LOGIC & CRYPTOGRAPHIC SURFACE (UNIVERSE GRAPH)
 // ============================================================================
+let surfaceCanvas = null;
+let surfaceCtx = null;
+let surfaceNodes = [];
+let surfaceEdges = [];
+let surfaceHoveredNode = null;
+let surfaceSelectedNode = null;
+let surfaceBlastActive = false;
+let surfaceBlastParticles = [];
+let surfaceAnimFrame = null;
+let surfaceInitialized = false;
+
+function buildSurfaceGraphData() {
+    const repo = REPOSITORIES[currentRepoKey] || REPOSITORIES.fintech;
+    const assets = repo.assets || [];
+
+    const serviceNodes = [
+        { id: 'jwt-auth', name: 'JWT AUTH SERVICE', kind: 'service', role: 'Authentication & Session Token Signer', risk: 'CRITICAL', x: 0.32, y: 0.36, r: 16 },
+        { id: 'api-gw', name: 'API GATEWAY', kind: 'service', role: 'Ingress Routing & Handshakes', risk: 'CRITICAL', x: 0.68, y: 0.32, r: 16 },
+        { id: 'payment-db', name: 'PAYMENT STORE', kind: 'service', role: 'Encrypted Database at Rest', risk: 'SAFE', x: 0.40, y: 0.72, r: 16 },
+        { id: 'tls-edge', name: 'TLS TERMINATION', kind: 'service', role: 'Transport Layer Security Ingress', risk: 'CRITICAL', x: 0.76, y: 0.66, r: 16 }
+    ];
+
+    const edges = [
+        { from: 'jwt-auth', to: 'api-gw', kind: 'inferred' },
+        { from: 'api-gw', to: 'payment-db', kind: 'inferred' },
+        { from: 'tls-edge', to: 'api-gw', kind: 'inferred' }
+    ];
+
+    const assetNodes = assets.map((asset, idx) => {
+        let parentId = 'jwt-auth';
+        const nameUpper = ((asset.name || '') + ' ' + (asset.role || '')).toUpperCase();
+        if (/ECDH|ECDSA|FHIR|API|GATEWAY/.test(nameUpper)) parentId = 'api-gw';
+        else if (/AES|SHA|MD5|DB|RECORD|COLUMN/.test(nameUpper)) parentId = 'payment-db';
+        else if (/DH|TLS|VPN|CERT|ROOT/.test(nameUpper)) parentId = 'tls-edge';
+
+        const parent = serviceNodes.find(s => s.id === parentId) || serviceNodes[0];
+        const angle = (idx * 1.35) % (Math.PI * 2);
+        const dist = 0.13 + (idx % 3) * 0.035;
+
+        edges.push({ from: asset.id, to: parentId, kind: 'evidence' });
+
+        return {
+            id: asset.id,
+            name: asset.name,
+            role: asset.role,
+            location: asset.location,
+            family: asset.family,
+            risk: asset.risk,
+            purpose: asset.purpose,
+            riskReason: asset.riskReason,
+            moscaFormula: asset.moscaFormula,
+            kind: 'asset',
+            parentId,
+            x: Math.max(0.12, Math.min(0.88, parent.x + Math.cos(angle) * dist)),
+            y: Math.max(0.14, Math.min(0.86, parent.y + Math.sin(angle) * dist)),
+            r: 9
+        };
+    });
+
+    surfaceNodes = [...serviceNodes, ...assetNodes];
+    surfaceEdges = edges;
+
+    if (!surfaceSelectedNode && surfaceNodes.length) {
+        surfaceSelectedNode = surfaceNodes.find(n => n.name === 'RSA-2048') || surfaceNodes[0];
+    }
+    updateSurfaceDrawer(surfaceSelectedNode);
+}
+
+function updateSurfaceDrawer(node) {
+    if (!node) return;
+    const nameEl = document.getElementById('drawer-node-name');
+    const badgeEl = document.getElementById('drawer-node-badge');
+    const metaEl = document.getElementById('drawer-node-meta');
+    const roleEl = document.getElementById('drawer-node-role');
+    const threatEl = document.getElementById('drawer-node-threat');
+    const radiusEl = document.getElementById('drawer-blast-radius');
+
+    if (nameEl) nameEl.textContent = node.name;
+    if (badgeEl) {
+        badgeEl.textContent = node.risk;
+        badgeEl.className = node.risk === 'CRITICAL'
+            ? 'px-2 py-0.5 rounded text-[10px] font-extrabold font-mono uppercase bg-red-500/15 border border-red-500/30 text-red-400'
+            : (node.risk === 'HIGH'
+                ? 'px-2 py-0.5 rounded text-[10px] font-extrabold font-mono uppercase bg-amber-500/15 border border-amber-500/30 text-amber-400'
+                : 'px-2 py-0.5 rounded text-[10px] font-extrabold font-mono uppercase bg-emerald-500/15 border border-emerald-500/30 text-emerald-400');
+    }
+    if (metaEl) {
+        metaEl.innerHTML = `
+            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">${node.location || 'Microservice Core'}</span>
+            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">${node.family || (node.kind === 'service' ? 'Service Boundary' : 'Primitive')}</span>
+        `;
+    }
+    if (roleEl) roleEl.textContent = node.purpose || node.role;
+    if (threatEl) threatEl.textContent = node.riskReason || (node.risk === 'CRITICAL' ? 'Quantum factorisation solves asymmetric keys in polynomial time.' : 'Post-quantum resilient posture under Grover search.');
+    if (radiusEl) {
+        radiusEl.textContent = node.kind === 'service'
+            ? 'Anchor for 4 downstream cryptographic calls'
+            : '14 files · 3 services · 2 session flows';
+    }
+}
+
+function triggerBlastRadiusTrace() {
+    surfaceBlastActive = true;
+    surfaceBlastParticles = [];
+    const activeId = surfaceSelectedNode ? surfaceSelectedNode.id : 'jwt-auth';
+
+    surfaceEdges.forEach(e => {
+        if (e.from === activeId || e.to === activeId || !surfaceSelectedNode) {
+            for (let i = 0; i < 4; i++) {
+                surfaceBlastParticles.push({
+                    from: e.from,
+                    to: e.to,
+                    progress: Math.random() * 0.4,
+                    speed: 0.015 + Math.random() * 0.01
+                });
+            }
+        }
+    });
+
+    setTimeout(() => {
+        surfaceBlastActive = false;
+        surfaceBlastParticles = [];
+    }, 4500);
+}
+
+function traceImpactFromDrawer() {
+    triggerBlastRadiusTrace();
+}
+
+function inspectInCodeFixes() {
+    if (surfaceSelectedNode && surfaceSelectedNode.kind === 'asset') {
+        selectedAssetId = surfaceSelectedNode.id;
+    }
+    switchView('analyst');
+}
+
+function renderSurfaceView() {
+    buildSurfaceGraphData();
+
+    if (!surfaceCanvas) {
+        surfaceCanvas = document.getElementById('workspace-surface-canvas');
+        if (!surfaceCanvas) return;
+        surfaceCtx = surfaceCanvas.getContext('2d');
+
+        const onResize = () => {
+            if (!surfaceCanvas) return;
+            surfaceCanvas.width = surfaceCanvas.parentElement.clientWidth;
+            surfaceCanvas.height = surfaceCanvas.parentElement.clientHeight;
+        };
+        window.addEventListener('resize', onResize);
+        onResize();
+
+        // Mouse listeners
+        surfaceCanvas.addEventListener('mousemove', (e) => {
+            const rect = surfaceCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            let hit = null;
+            surfaceNodes.forEach(node => {
+                const nx = node.x * surfaceCanvas.width;
+                const ny = node.y * surfaceCanvas.height;
+                const dist = Math.hypot(mx - nx, my - ny);
+                if (dist <= node.r + 6) hit = node;
+            });
+            surfaceHoveredNode = hit;
+            surfaceCanvas.style.cursor = hit ? 'pointer' : 'crosshair';
+        });
+
+        surfaceCanvas.addEventListener('click', (e) => {
+            const rect = surfaceCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            surfaceNodes.forEach(node => {
+                const nx = node.x * surfaceCanvas.width;
+                const ny = node.y * surfaceCanvas.height;
+                const dist = Math.hypot(mx - nx, my - ny);
+                if (dist <= node.r + 6) {
+                    surfaceSelectedNode = node;
+                    updateSurfaceDrawer(node);
+                }
+            });
+        });
+
+        // Animation loop
+        let frame = 0;
+        const animate = () => {
+            frame++;
+            if (currentView === 'surface' && surfaceCanvas && surfaceCtx) {
+                const w = surfaceCanvas.width;
+                const h = surfaceCanvas.height;
+
+                surfaceCtx.clearRect(0, 0, w, h);
+
+                // Deep ambient risk gradient
+                const grad = surfaceCtx.createRadialGradient(w * 0.5, h * 0.45, 10, w * 0.5, h * 0.45, w * 0.6);
+                grad.addColorStop(0, surfaceBlastActive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(99, 102, 241, 0.05)');
+                grad.addColorStop(1, 'rgba(5, 7, 13, 0.98)');
+                surfaceCtx.fillStyle = grad;
+                surfaceCtx.fillRect(0, 0, w, h);
+
+                // Draw Edges
+                surfaceEdges.forEach(edge => {
+                    const from = surfaceNodes.find(n => n.id === edge.from);
+                    const to = surfaceNodes.find(n => n.id === edge.to);
+                    if (!from || !to) return;
+
+                    const x1 = from.x * w;
+                    const y1 = from.y * h;
+                    const x2 = to.x * w;
+                    const y2 = to.y * h;
+
+                    const isRelated = surfaceHoveredNode && (from.id === surfaceHoveredNode.id || to.id === surfaceHoveredNode.id);
+
+                    surfaceCtx.beginPath();
+                    if (edge.kind === 'inferred') {
+                        surfaceCtx.setLineDash([4, 4]);
+                    } else {
+                        surfaceCtx.setLineDash([]);
+                    }
+                    surfaceCtx.moveTo(x1, y1);
+                    surfaceCtx.lineTo(x2, y2);
+
+                    let strokeColor = 'rgba(148, 163, 184, 0.16)';
+                    if (isRelated) {
+                        strokeColor = 'rgba(99, 102, 241, 0.8)';
+                    } else if (from.risk === 'CRITICAL' && to.risk === 'CRITICAL') {
+                        strokeColor = 'rgba(239, 68, 68, 0.35)';
+                    }
+                    surfaceCtx.strokeStyle = strokeColor;
+                    surfaceCtx.lineWidth = isRelated ? 2.2 : 1.4;
+                    surfaceCtx.stroke();
+                    surfaceCtx.setLineDash([]);
+                });
+
+                // Blast radius energy particles
+                if (surfaceBlastActive) {
+                    surfaceBlastParticles.forEach(p => {
+                        p.progress += p.speed;
+                        if (p.progress > 1) p.progress = 0;
+                        const from = surfaceNodes.find(n => n.id === p.from);
+                        const to = surfaceNodes.find(n => n.id === p.to);
+                        if (from && to) {
+                            const px = from.x * w + (to.x * w - from.x * w) * p.progress;
+                            const py = from.y * h + (to.y * h - from.y * h) * p.progress;
+                            surfaceCtx.beginPath();
+                            surfaceCtx.arc(px, py, 3, 0, Math.PI * 2);
+                            surfaceCtx.fillStyle = '#ef4444';
+                            surfaceCtx.shadowColor = '#ef4444';
+                            surfaceCtx.shadowBlur = 8;
+                            surfaceCtx.fill();
+                            surfaceCtx.shadowBlur = 0;
+                        }
+                    });
+                }
+
+                // Draw Nodes
+                surfaceNodes.forEach((node, idx) => {
+                    const nx = node.x * w;
+                    const ny = node.y * h + Math.sin(frame * 0.025 + idx) * 1.5;
+
+                    const isHovered = surfaceHoveredNode && surfaceHoveredNode.id === node.id;
+                    const isSelected = surfaceSelectedNode && surfaceSelectedNode.id === node.id;
+
+                    let color = '#10b981';
+                    if (node.risk === 'CRITICAL') color = '#ef4444';
+                    else if (node.risk === 'HIGH') color = '#f59e0b';
+
+                    // Halo on selected or critical
+                    if (isSelected || (node.risk === 'CRITICAL' && surfaceBlastActive)) {
+                        surfaceCtx.beginPath();
+                        surfaceCtx.arc(nx, ny, node.r + 8, 0, Math.PI * 2);
+                        surfaceCtx.fillStyle = isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                        surfaceCtx.fill();
+                    }
+
+                    // Node Core
+                    surfaceCtx.beginPath();
+                    surfaceCtx.arc(nx, ny, isHovered ? node.r + 2 : node.r, 0, Math.PI * 2);
+                    surfaceCtx.fillStyle = color;
+                    surfaceCtx.shadowColor = color;
+                    surfaceCtx.shadowBlur = isHovered ? 14 : 6;
+                    surfaceCtx.fill();
+                    surfaceCtx.shadowBlur = 0;
+
+                    // Node Label
+                    surfaceCtx.font = '600 11px "IBM Plex Mono", monospace';
+                    surfaceCtx.fillStyle = isHovered || isSelected ? '#ffffff' : '#cbd5e1';
+                    surfaceCtx.textAlign = 'center';
+                    surfaceCtx.fillText(node.name, nx, ny + node.r + 14);
+
+                    if (node.kind === 'service') {
+                        surfaceCtx.font = '400 9px "IBM Plex Mono", monospace';
+                        surfaceCtx.fillStyle = '#94a3b8';
+                        surfaceCtx.fillText('SERVICE', nx, ny - node.r - 5);
+                    }
+                });
+            }
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }
+}
+
 function switchView(viewName) {
     currentView = viewName;
 
@@ -782,8 +1087,8 @@ function switchView(viewName) {
         activePanel.classList.add('view-fade');
     }
 
-    // Update Sidebar Item Active States
-    document.querySelectorAll('.sidebar-item').forEach(item => {
+    // Update Rail & Sidebar Item Active States
+    document.querySelectorAll('.rail-item, .sidebar-item').forEach(item => {
         item.classList.remove('active');
     });
 
@@ -793,7 +1098,9 @@ function switchView(viewName) {
     }
 
     // Render corresponding view data
-    if (viewName === 'executive') {
+    if (viewName === 'surface') {
+        renderSurfaceView();
+    } else if (viewName === 'executive') {
         renderExecutiveView();
     } else if (viewName === 'risk') {
         renderRiskManagerView();
@@ -812,7 +1119,7 @@ function switchView(viewName) {
 // ============================================================================
 function selectScanRepo(repoKey) {
     currentRepoKey = repoKey;
-    const repo = REPOSITORIES[repoKey];
+    const repo = REPOSITORIES[repoKey] || REPOSITORIES.fintech;
 
     // Highlight selected card
     REPO_KEYS.forEach(k => {
@@ -834,23 +1141,34 @@ function selectScanRepo(repoKey) {
     const codeArea = document.getElementById('scan-source-code');
     const langLabel = document.getElementById('code-lang-label');
     const sidebarLabel = document.getElementById('sidebar-repo-label');
+    const railLabel = document.getElementById('rail-target-label');
 
     if (codeArea) codeArea.value = repo.sampleCode;
     if (langLabel) langLabel.textContent = repo.codeLang;
     if (sidebarLabel) {
         sidebarLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ${repo.name}`;
     }
+    if (railLabel) {
+        railLabel.textContent = repo.name;
+    }
 
-    // Update breadcrumbs across views
+    // Update breadcrumbs across views answering Q1-Q4
+    const surfBc = document.getElementById('surface-breadcrumb');
     const execBc = document.getElementById('exec-breadcrumb');
     const riskBc = document.getElementById('risk-breadcrumb');
     const analystBc = document.getElementById('analyst-breadcrumb');
 
-    if (execBc) execBc.textContent = `EXECUTIVE VIEW • ${repo.name.toUpperCase()}`;
-    if (riskBc) riskBc.textContent = `RISK & MIGRATION MANAGER • ${repo.name.toUpperCase()}`;
-    if (analystBc) analystBc.textContent = `SECURITY ANALYST • ${repo.name.toUpperCase()}`;
+    if (surfBc) surfBc.innerHTML = `<span>REPOSITORY</span> &rarr; <span>${repo.name.toUpperCase()}</span> &rarr; <span class="text-white">CRYPTOGRAPHIC SURFACE</span>`;
+    if (execBc) execBc.textContent = `REPOSITORY → ${repo.name.toUpperCase()} → EXECUTIVE POSTURE`;
+    if (riskBc) riskBc.textContent = `REPOSITORY → ${repo.name.toUpperCase()} → MIGRATION PRIORITIES`;
+    if (analystBc) analystBc.textContent = `REPOSITORY → ${repo.name.toUpperCase()} → ASSET INVENTORY & CODE FIXES`;
 
     try { localStorage.setItem('ecdat-repo', repoKey); } catch (e) {}
+
+    // Refresh surface graph data if in surface view
+    if (currentView === 'surface') {
+        buildSurfaceGraphData();
+    }
 }
 
 // ============================================================================
@@ -1824,7 +2142,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         selectScanRepo('fintech');
     }
-    switchView('scan');
+    const hashView = (window.location.hash || '').replace('#', '');
+    if (['surface', 'scan', 'executive', 'risk', 'analyst'].includes(hashView)) {
+        switchView(hashView);
+    } else {
+        switchView('surface');
+    }
     startThreatCountdown();
 
     const slider = document.getElementById('horizon-slider');

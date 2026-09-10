@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECDAT — The Cryptographic Surface | Explorable Intelligence</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%239333ea'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='22' font-size='13' font-weight='800' text-anchor='middle' fill='white' font-family='monospace'%3EEC%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Instrument Serif"', 'serif'],
+                        mono: ['"IBM Plex Mono"', 'monospace'],
+                        sans: ['"Inter"', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        void: '#05070d',
+                        brand: '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #05070d;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #05070d; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .scene-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            padding: 4rem 1.5rem;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .scene-card {
+            pointer-events: auto;
+            max-width: 44rem;
+            backdrop-filter: blur(12px);
+            background: rgba(5, 7, 13, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 1.25rem;
+            padding: 2.25rem;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        }
+        .scene-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        .glass-pill {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+        }
+        /* Fixed Background Canvas */
+        #universe-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-void text-slate-200 antialiased selection:bg-indigo-500 selection:text-white font-sans">
+
+    <!-- Fixed Interactive Canvas Layer (The Cryptographic Surface) -->
+    <canvas id="universe-canvas"></canvas>
+
+    <!-- Persistent Header Navigation -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between pointer-events-none">
+        <div class="flex items-center gap-3 pointer-events-auto">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-extrabold text-white font-mono text-xs tracking-wider shadow-lg shadow-indigo-500/20">
+                EC
+            </div>
+            <div>
+                <span class="font-extrabold tracking-tight text-white text-sm font-sans block">ECDAT</span>
+                <span class="text-[10px] text-indigo-400 font-mono block -mt-0.5">The Cryptographic Surface · v2.0</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 pointer-events-auto">
+            <!-- Legend Indicator (Visible during graph exploration) -->
+            <div id="graph-legend" class="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg glass-pill text-[11px] font-mono text-slate-400">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span>Critical (Shor)</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>PQC / Grover-Safe</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 border-t border-dashed border-slate-500"></span>Inferred edge</span>
+            </div>
+
+            <!-- Jump directly to Workspace -->
+            <a href="/workspace" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs font-sans shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all transform active:scale-95">
+                <span>Enter Workspace</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Persistent Floating Target Anchor (Bottom Left) -->
+    <div class="fixed bottom-5 left-6 z-40 hidden sm:block pointer-events-auto">
+        <div class="glass-pill px-3.5 py-2 rounded-xl flex items-center gap-3 text-xs font-mono shadow-2xl">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-slate-300 font-semibold">FINTECH API GATEWAY</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-red-400 font-bold">4 CRITICAL</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-slate-400">10 ASSETS</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-indigo-400 font-bold">CBOM 1.6 READY</span>
+        </div>
+    </div>
+
+    <!-- Main Scroll Narrative (7 Scenes in Netra Experiential Grammar) -->
+    <main class="relative z-10">
+
+        <!-- ================================================================= -->
+        <!-- SCENE 01: THE PROBLEM                                             -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-1">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card">
+                    <div class="text-[11px] font-mono tracking-widest text-indigo-400 uppercase font-semibold">
+                        01 &middot; The Problem
+                    </div>
+                    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-serif text-white mt-2 leading-tight tracking-tight">
+                        The signal is not in the data.<br>
+                        <span class="italic text-indigo-300">It's in the relationships between it.</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm sm:text-base mt-4 leading-relaxed font-sans max-w-2xl">
+                        Modern applications contain dozens of cryptographic primitives scattered across microservices, authentication tokens, and TLS termination endpoints. You cannot protect what you cannot map.
+                    </p>
+                    <div class="mt-6 flex items-center gap-2 text-[11px] font-mono text-slate-500">
+                        <span>SCROLL DOWN TO REVEAL THE SURFACE</span>
+                        <span>&darr;</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 02: DISCOVERY                                               -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-2">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card">
+                    <div class="text-[11px] font-mono tracking-widest text-indigo-400 uppercase font-semibold">
+                        02 &middot; Discovery
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif text-white mt-2 leading-tight">
+                        Your codebase has a cryptographic surface.
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl">
+                        ECDAT performs static Abstract Syntax Tree (AST) scanning across Python, JavaScript, Java, Go, C/C++, and configs to identify every classical and quantum-safe primitive.
+                    </p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-slate-800/80 text-xs font-mono">
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">ALGORITHMS</span>
+                            <span class="text-white font-bold">RSA &middot; ECDH &middot; AES</span>
+                        </div>
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">KEY SIZES</span>
+                            <span class="text-white font-bold">2048 &middot; 256 &middot; 384</span>
+                        </div>
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">LANGUAGES</span>
+                            <span class="text-white font-bold">Node &middot; Java &middot; Py</span>
+                        </div>
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">STANDARDS</span>
+                            <span class="text-indigo-400 font-bold">NIST FIPS 203</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 03: THE TOPOLOGY (RELATIONSHIPS)                            -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-3">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card">
+                    <div class="text-[11px] font-mono tracking-widest text-indigo-400 uppercase font-semibold">
+                        03 &middot; Topology
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif text-white mt-2 leading-tight">
+                        A primitive doesn't exist alone.<br>
+                        <span class="italic text-indigo-300">It anchors an entire service.</span>
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl">
+                        ECDAT correlates primitives to real operational components: JWT token signers, API gateway handshakes, payment database columns, and outbound TLS sessions.
+                    </p>
+                    <div class="mt-5 p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 font-mono text-xs text-slate-400">
+                        <span class="text-indigo-400 font-bold">&larr; Observe the graph:</span> Solid lines represent evidence-backed calls; dashed lines show inferred service topology.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 04: QUANTUM EXPOSURE & BLAST RADIUS                        -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-4">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card border-red-900/30">
+                    <div class="text-[11px] font-mono tracking-widest text-red-400 uppercase font-semibold">
+                        04 &middot; Quantum Exposure &amp; Blast Radius
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif text-white mt-2 leading-tight">
+                        Shor's Algorithm breaks public-key cryptography in polynomial time.
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl">
+                        A Cryptanalytically Relevant Quantum Computer (CRQC) solves integer factorisation (RSA) and discrete log (ECC/DH). Compromising one signing key exposes all historical JWT sessions and TLS handshakes.
+                    </p>
+                    <div class="mt-5 flex flex-wrap items-center gap-3 font-mono text-xs">
+                        <span class="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-bold">HNDL ACTIVE THREAT</span>
+                        <span class="text-slate-400">Harvest Now, Decrypt Later captures traffic today.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 05: THE HORIZON & MOSCA'S THEOREM                           -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-5">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card border-amber-900/30">
+                    <div class="text-[11px] font-mono tracking-widest text-amber-400 uppercase font-semibold">
+                        05 &middot; Mosca's Theorem
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif text-white mt-2 leading-tight">
+                        The quantum horizon isn't a date.<br>
+                        <span class="italic text-amber-300">It's a migration deadline.</span>
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl font-sans">
+                        Michele Mosca's rule: if Data Shelf-life ($X$) + Migration Duration ($Y$) > Quantum Arrival ($Z$), your data is already compromised today under HNDL.
+                    </p>
+                    <div class="mt-5 p-4 rounded-xl bg-amber-950/20 border border-amber-900/40 font-mono text-xs space-y-1.5">
+                        <div class="text-amber-300 font-bold text-sm">X (10 yrs) + Y (3 yrs) = 13 years > Z (7 yrs / 2031)</div>
+                        <div class="text-slate-400">Status: <span class="text-red-400 font-bold">DEADLINE EXCEEDED</span> &middot; Migration is 6 years overdue for audit data.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 06: MIGRATION & REPLACEMENT                                 -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-6">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card border-emerald-900/30">
+                    <div class="text-[11px] font-mono tracking-widest text-emerald-400 uppercase font-semibold">
+                        06 &middot; NIST PQC Migration
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl font-serif text-white mt-2 leading-tight">
+                        Deterministic drop-in replacements.
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl font-sans">
+                        ECDAT automatically synthesizes post-quantum code replacements based on the finalized NIST FIPS 203 (ML-KEM) and FIPS 204 (ML-DSA) standards.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 pt-4 border-t border-slate-800 text-xs font-mono">
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                            <span class="text-red-400 block font-bold">RSA-2048 &rarr; ML-KEM-768</span>
+                            <span class="text-slate-400 text-[11px] mt-1 block">Module-Lattice Key Encapsulation (FIPS 203)</span>
+                        </div>
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                            <span class="text-emerald-400 block font-bold">ECDSA-P384 &rarr; ML-DSA-65</span>
+                            <span class="text-slate-400 text-[11px] mt-1 block">Lattice Digital Signature Algorithm (FIPS 204)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- SCENE 07: WORKSPACE LAUNCH                                        -->
+        <!-- ================================================================= -->
+        <section class="scene-container" id="scene-7">
+            <div class="max-w-4xl mx-auto w-full px-4">
+                <div class="scene-card border-indigo-500/40 text-center flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-extrabold text-white font-mono text-base shadow-xl shadow-indigo-500/30 mb-4">
+                        EC
+                    </div>
+                    <div class="text-[11px] font-mono tracking-widest text-indigo-400 uppercase font-semibold">
+                        07 &middot; Enter The Workspace
+                    </div>
+                    <h2 class="text-3xl sm:text-5xl lg:text-6xl font-serif text-white mt-2 leading-tight">
+                        Discover. Map. Remediate.
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-4 leading-relaxed max-w-xl font-sans">
+                        Full interactive Cryptographic Surface, live AST scan engine, Quantum Horizon Simulator, Gantt timeline, and CycloneDX 1.6 CBOM generator.
+                    </p>
+                    <div class="mt-8 flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+                        <a href="/workspace" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all transform active:scale-95">
+                            <span>Launch ECDAT Workspace</span>
+                            <span>&rarr;</span>
+                        </a>
+                        <a href="#scene-1" class="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 font-mono text-xs transition-colors">
+                            &uarr; Back to Top
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Canvas Visualization Controller -->
+    <script>
+        // ====================================================================
+        // THE CRYPTOGRAPHIC SURFACE GRAPH CONTROLLER
+        // ====================================================================
+        const canvas = document.getElementById('universe-canvas');
+        const ctx = canvas.getContext('2d');
+        const legend = document.getElementById('graph-legend');
+
+        let width = 0;
+        let height = 0;
+        let scrollY = 0;
+        let maxScroll = 1;
+        let currentScene = 0;
+        let isTabActive = true;
+
+        // Performance degradation / reduced-motion
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Graph Definition
+        const NODES = [
+            { id: 'jwt-auth', label: 'JWT AUTH SERVICE', kind: 'service', x: 0.38, y: 0.36, risk: 'CRITICAL', r: 9 },
+            { id: 'api-gw', label: 'API GATEWAY', kind: 'service', x: 0.62, y: 0.32, risk: 'CRITICAL', r: 9 },
+            { id: 'payments', label: 'PAYMENT DB', kind: 'service', x: 0.50, y: 0.68, risk: 'SAFE', r: 9 },
+            { id: 'tls-edge', label: 'TLS INGRESS', kind: 'service', x: 0.72, y: 0.60, risk: 'CRITICAL', r: 9 },
+
+            // Cryptographic Primitives
+            { id: 'rsa-2048', label: 'RSA-2048', kind: 'asset', algo: 'Factorization', loc: '/src/auth/jwt.js:42', x: 0.26, y: 0.30, risk: 'CRITICAL', r: 7 },
+            { id: 'ecdh-p256', label: 'ECDH P-256', kind: 'asset', algo: 'Elliptic Curve', loc: '/src/crypto/session.js:18', x: 0.74, y: 0.24, risk: 'CRITICAL', r: 7 },
+            { id: 'dh-2048', label: 'DH-2048', kind: 'asset', algo: 'Finite Field', loc: '/config/tls.json:14', x: 0.82, y: 0.52, risk: 'CRITICAL', r: 7 },
+            { id: 'aes-256', label: 'AES-256-GCM', kind: 'asset', algo: 'Symmetric', loc: '/src/db/encrypt.js:33', x: 0.40, y: 0.80, risk: 'SAFE', r: 6 },
+            { id: 'sha-256', label: 'SHA-256', kind: 'asset', algo: 'Hash', loc: '/src/webhooks/sign.js:29', x: 0.60, y: 0.78, risk: 'SAFE', r: 6 },
+            { id: 'mldsa-65', label: 'ML-DSA-65', kind: 'pqc', algo: 'FIPS 204 Lattice', x: 0.18, y: 0.44, risk: 'PQC', r: 8 },
+            { id: 'mlkem-768', label: 'ML-KEM-768', kind: 'pqc', algo: 'FIPS 203 Lattice', x: 0.86, y: 0.36, risk: 'PQC', r: 8 }
+        ];
+
+        const EDGES = [
+            { from: 'rsa-2048', to: 'jwt-auth', kind: 'evidence' },
+            { from: 'jwt-auth', to: 'api-gw', kind: 'inferred' },
+            { from: 'ecdh-p256', to: 'api-gw', kind: 'evidence' },
+            { from: 'api-gw', to: 'payments', kind: 'inferred' },
+            { from: 'payments', to: 'aes-256', kind: 'evidence' },
+            { from: 'payments', to: 'sha-256', kind: 'evidence' },
+            { from: 'tls-edge', to: 'api-gw', kind: 'inferred' },
+            { from: 'dh-2048', to: 'tls-edge', kind: 'evidence' },
+            // PQC Successor migration links
+            { from: 'mldsa-65', to: 'rsa-2048', kind: 'pqc' },
+            { from: 'mlkem-768', to: 'ecdh-p256', kind: 'pqc' }
+        ];
+
+        // Background Particles
+        const PARTICLE_COUNT = prefersReducedMotion ? 20 : 65;
+        const particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            currentScene = Math.min(6, Math.floor((scrollY / Math.max(1, maxScroll)) * 7));
+            if (currentScene >= 2 && currentScene <= 5) {
+                legend.classList.remove('hidden');
+            } else {
+                legend.classList.add('hidden');
+            }
+        });
+
+        // Initialize particles
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+                x: Math.random() * 2000,
+                y: Math.random() * 2000,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                size: Math.random() * 1.6 + 0.8,
+                alpha: Math.random() * 0.5 + 0.2
+            });
+        }
+
+        // Color helper
+        function getNodeColor(risk, scene) {
+            if (risk === 'PQC') return '#10b981'; // Emerald
+            if (scene < 3) return '#818cf8'; // Calm initial indigo
+            if (risk === 'CRITICAL') return '#ef4444'; // Red
+            if (risk === 'SAFE') return '#10b981'; // Emerald
+            return '#f59e0b'; // Amber
+        }
+
+        let frame = 0;
+
+        function draw() {
+            if (!isTabActive) {
+                requestAnimationFrame(draw);
+                return;
+            }
+            frame++;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Progress across 7 scenes (0.0 to 1.0)
+            const progress = Math.min(1, Math.max(0, scrollY / Math.max(1, maxScroll)));
+            const sceneIndex = Math.min(6, Math.floor(progress * 7));
+
+            // Background Deep Ambient Aurora Gradient
+            const grad = ctx.createRadialGradient(
+                width * 0.5, height * 0.45, 10,
+                width * 0.5, height * 0.45, width * 0.7
+            );
+            if (sceneIndex >= 3 && sceneIndex <= 4) {
+                // Turbulent red/amber threat field
+                grad.addColorStop(0, 'rgba(239, 68, 68, 0.08)');
+                grad.addColorStop(0.5, 'rgba(245, 158, 11, 0.04)');
+                grad.addColorStop(1, 'rgba(5, 7, 13, 0.98)');
+            } else if (sceneIndex >= 5) {
+                // Emerald resolution field
+                grad.addColorStop(0, 'rgba(16, 185, 129, 0.08)');
+                grad.addColorStop(0.5, 'rgba(99, 102, 241, 0.04)');
+                grad.addColorStop(1, 'rgba(5, 7, 13, 0.98)');
+            } else {
+                // Calm indigo
+                grad.addColorStop(0, 'rgba(99, 102, 241, 0.07)');
+                grad.addColorStop(0.6, 'rgba(79, 70, 229, 0.03)');
+                grad.addColorStop(1, 'rgba(5, 7, 13, 0.98)');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Background Floating Particles
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = width;
+                if (p.x > width) p.x = 0;
+                if (p.y < 0) p.y = height;
+                if (p.y > height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(148, 163, 184, ${p.alpha * 0.4})`;
+                ctx.fill();
+            });
+
+            // Calculate scene visibility and camera shifts
+            const graphAlpha = sceneIndex === 0 ? 0.35 : (sceneIndex >= 1 ? 0.95 : 0.8);
+            const cameraScale = sceneIndex === 3 ? 1.08 : (sceneIndex === 4 ? 0.92 : 1.0);
+            const cameraOffsetX = sceneIndex === 2 ? 30 : 0;
+
+            ctx.save();
+            ctx.translate(width * 0.5 + cameraOffsetX, height * 0.5);
+            ctx.scale(cameraScale, cameraScale);
+            ctx.translate(-width * 0.5, -height * 0.5);
+
+            // Draw Graph Edges
+            if (sceneIndex >= 2) {
+                EDGES.forEach(edge => {
+                    const fromNode = NODES.find(n => n.id === edge.from);
+                    const toNode = NODES.find(n => n.id === edge.to);
+                    if (!fromNode || !toNode) return;
+
+                    // PQC successor links only appear in scene 5 and 6
+                    if (edge.kind === 'pqc' && sceneIndex < 5) return;
+
+                    const x1 = fromNode.x * width;
+                    const y1 = fromNode.y * height;
+                    const x2 = toNode.x * width;
+                    const y2 = toNode.y * height;
+
+                    ctx.beginPath();
+                    if (edge.kind === 'inferred') {
+                        ctx.setLineDash([4, 4]); // Inferred edges dashed
+                    } else if (edge.kind === 'pqc') {
+                        ctx.setLineDash([3, 3]);
+                    } else {
+                        ctx.setLineDash([]);
+                    }
+
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+
+                    let edgeColor = 'rgba(148, 163, 184, 0.18)';
+                    if (edge.kind === 'pqc') {
+                        edgeColor = 'rgba(16, 185, 129, 0.6)';
+                    } else if (sceneIndex === 3) {
+                        // Quantum blast radius pulse
+                        edgeColor = (fromNode.risk === 'CRITICAL' || toNode.risk === 'CRITICAL')
+                            ? 'rgba(239, 68, 68, 0.45)'
+                            : 'rgba(148, 163, 184, 0.08)';
+                    } else if (sceneIndex >= 5) {
+                        edgeColor = 'rgba(16, 185, 129, 0.35)';
+                    }
+
+                    ctx.strokeStyle = edgeColor;
+                    ctx.lineWidth = edge.kind === 'pqc' ? 2 : 1.5;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                });
+            }
+
+            // Draw Graph Nodes
+            NODES.forEach((node, i) => {
+                // PQC successor nodes only emerge in scene 5 & 6
+                if (node.kind === 'pqc' && sceneIndex < 5) return;
+
+                // Position with slight breathing motion
+                const breathe = Math.sin(frame * 0.02 + i) * 1.5;
+                const nx = node.x * width;
+                const ny = node.y * height + (prefersReducedMotion ? 0 : breathe);
+
+                const color = getNodeColor(node.risk, sceneIndex);
+
+                // Halo ring for critical nodes in exposure scene
+                if (node.risk === 'CRITICAL' && sceneIndex === 3) {
+                    const pulse = (Math.sin(frame * 0.06) + 1) * 8 + 12;
+                    ctx.beginPath();
+                    ctx.arc(nx, ny, pulse, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+                    ctx.fill();
+                }
+
+                // Node Core Circle
+                ctx.beginPath();
+                ctx.arc(nx, ny, node.r, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = sceneIndex >= 3 ? 14 : 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Node Text Label
+                if (sceneIndex >= 1) {
+                    ctx.font = '600 11px "IBM Plex Mono", monospace';
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(node.label, nx, ny + node.r + 14);
+
+                    // Sub-label (Code location or algorithm)
+                    if (sceneIndex >= 2 && node.kind === 'asset') {
+                        ctx.font = '400 9px "IBM Plex Mono", monospace';
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillText(node.loc || node.algo, nx, ny + node.r + 25);
+                    }
+                }
+            });
+
+            ctx.restore();
+
+            requestAnimationFrame(draw);
+        }
+
+        // Tab focus pause
+        document.addEventListener('visibilitychange', () => {
+            isTabActive = !document.hidden;
+        });
+
+        // Initialize
+        resize();
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>

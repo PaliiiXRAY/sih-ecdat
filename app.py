@@ -31,7 +31,11 @@ class ECDATRequestHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
 
-        if path == "/" or path == "/index.html":
+        if path == "/" or path == "/entry.html":
+            self.serve_file(os.path.join(STATIC_DIR, "entry.html"), "text/html")
+            return
+
+        if path == "/workspace" or path == "/index.html" or path == "/app":
             self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html")
             return
 
